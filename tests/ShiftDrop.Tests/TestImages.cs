@@ -7,6 +7,8 @@ internal static class TestImages
 {
     public static readonly Color Red = Color.FromRgb(220, 30, 30);
     public static readonly Color Blue = Color.FromRgb(30, 60, 220);
+    public static readonly Color PureRed = Color.FromRgb(255, 0, 0); // ImageMagick's "red"
+    public static readonly Color PureBlue = Color.FromRgb(0, 0, 255); // ImageMagick's "blue"
     public static readonly Color White = Colors.White;
     public static readonly Color Clear = Color.FromArgb(0, 0, 0, 0);
 

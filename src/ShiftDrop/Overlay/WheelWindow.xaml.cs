@@ -29,7 +29,8 @@ internal partial class WheelWindow : Window
     private Phase _phase = Phase.Hidden;
     private int _fadeGeneration;
     private string[] _files = Array.Empty<string>();
-    private IReadOnlyList<IFileAction> _actions = Array.Empty<IFileAction>();
+    private IReadOnlyList<ActionPage> _pages = Array.Empty<ActionPage>();
+    private int _pageIndex;
     private string _hubTitle = "";
     private string _hubSubtitle = "";
 
@@ -61,12 +62,27 @@ internal partial class WheelWindow : Window
         Hide();
     }
 
-    /// <summary>Shift was pressed mid-drag: put the (still invisible) wheel under the cursor.</summary>
-    public void ShowAt(POINT cursor)
-    {
-        if (_phase != Phase.Hidden)
-            return;
+    private IReadOnlyList<IFileAction> Actions => _pages.Count > 0 ? _pages[_pageIndex].Actions : Array.Empty<IFileAction>();
 
+    /// <summary>
+    /// Shift was pressed mid-drag. The first press puts the (still invisible) wheel under the cursor; pressing it
+    /// again while the wheel is open turns to the next page.
+    /// </summary>
+    public void OnShiftPressed(POINT cursor)
+    {
+        switch (_phase)
+        {
+            case Phase.Hidden:
+                ShowGhost(cursor);
+                break;
+            case Phase.Active when _pages.Count > 1:
+                NextPage();
+                break;
+        }
+    }
+
+    private void ShowGhost(POINT cursor)
+    {
         _phase = Phase.Ghost;
         _fadeGeneration++;
         Wheel.BeginAnimation(OpacityProperty, null);
@@ -139,12 +155,12 @@ internal partial class WheelWindow : Window
     private void OnDrop(object sender, DragEventArgs e)
     {
         int index = _phase == Phase.Active
-            ? WheelGeometry.HitTest(e.GetPosition(Wheel), _actions.Count)
+            ? WheelGeometry.HitTest(e.GetPosition(Wheel), Actions.Count)
             : WheelGeometry.OutsideIndex;
 
         if (index >= 0)
         {
-            IFileAction action = _actions[index];
+            IFileAction action = Actions[index];
             e.Effects = CopyEffect(e.AllowedEffects);
             Log.Info($"Dropped on '{action.Label}': {action.Description} for {_files.Length} item(s)");
             _runner.Run(action, _files);
@@ -163,31 +179,55 @@ internal partial class WheelWindow : Window
     private void Open(string[] files)
     {
         _files = files;
-        _actions = ActionCatalog.For(files);
-        (_hubTitle, _hubSubtitle) = Describe(files, _actions.Count);
-        Wheel.SetSlices(_actions.Select(action => action.Label).ToList());
+        _pages = ActionCatalog.For(files);
+        _pageIndex = 0;
+        (_hubTitle, _hubSubtitle) = Describe(files, _pages.Count);
+        ShowPage();
         Wheel.SetHub(_hubTitle, _hubSubtitle);
 
         _phase = Phase.Active;
         _fadeGeneration++;
         Wheel.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(120)));
         Wheel.PlayOpenAnimation();
-        Log.Info($"Wheel opened for {files.Length} item(s) starting with '{Path.GetFileName(files[0])}': {_actions.Count} action(s)");
+        string pages = _pages.Count == 0 ? "no actions" : string.Join(", ", _pages.Select(page => $"{page.Name} ({page.Actions.Count})"));
+        Log.Info($"Wheel opened for {files.Length} item(s) starting with '{Path.GetFileName(files[0])}': {pages}");
+    }
+
+    private void NextPage()
+    {
+        _pageIndex = (_pageIndex + 1) % _pages.Count;
+        ShowPage();
+        Wheel.PlayPageTurnAnimation();
+
+        // Highlight the slice under the cursor right away; the next DragOver updates the drop effect.
+        GetCursorPos(out POINT cursor);
+        UpdateHighlight(WheelGeometry.HitTest(Wheel.PointFromScreen(new Point(cursor.X, cursor.Y)), Actions.Count));
+        Log.Info($"Turned to the {_pages[_pageIndex].Name} page");
+    }
+
+    private void ShowPage()
+    {
+        Wheel.SetSlices(Actions.Select(action => new WheelItem(action.Label, action.Glyph)).ToList());
+        Wheel.SetHint(_pages.Count > 1 ? $"Shift → {_pages[(_pageIndex + 1) % _pages.Count].Name}" : null);
     }
 
     private void UpdateHover(DragEventArgs e)
     {
-        int index = WheelGeometry.HitTest(e.GetPosition(Wheel), _actions.Count);
+        int index = WheelGeometry.HitTest(e.GetPosition(Wheel), Actions.Count);
+        UpdateHighlight(index);
+        e.Effects = index >= 0 ? CopyEffect(e.AllowedEffects) : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void UpdateHighlight(int index)
+    {
         Wheel.Highlight(index);
         Wheel.SetHub(_hubTitle, index switch
         {
-            >= 0 => _actions[index].Description,
-            WheelGeometry.HubIndex when _actions.Count > 0 => "Release here to cancel",
+            >= 0 => Actions[index].Description,
+            WheelGeometry.HubIndex when Actions.Count > 0 => "Release here to cancel",
             _ => _hubSubtitle,
         });
-
-        e.Effects = index >= 0 ? CopyEffect(e.AllowedEffects) : DragDropEffects.None;
-        e.Handled = true;
     }
 
     private void FadeOut()
@@ -282,10 +322,10 @@ internal partial class WheelWindow : Window
         : allowed.HasFlag(DragDropEffects.Link) ? DragDropEffects.Link
         : DragDropEffects.None;
 
-    private static (string Title, string Subtitle) Describe(string[] files, int actionCount)
+    private static (string Title, string Subtitle) Describe(string[] files, int pageCount)
     {
         if (files.Length > 1)
-            return ($"{files.Length} items", actionCount > 0 ? "Drop on an action" : "Nothing to do with these yet");
+            return ($"{files.Length} items", pageCount > 0 ? "Drop on an action" : "Nothing to do with these yet");
 
         string path = files[0];
         if (Directory.Exists(path))
@@ -294,7 +334,7 @@ internal partial class WheelWindow : Window
         string size;
         try
         {
-            size = FormatSize(new FileInfo(path).Length);
+            size = ByteSize.Format(new FileInfo(path).Length);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -302,22 +342,8 @@ internal partial class WheelWindow : Window
         }
 
         string extension = Path.GetExtension(path);
-        return (size, actionCount > 0
+        return (size, pageCount > 0
             ? Path.GetFileName(path)
             : $"Nothing for {(extension.Length > 0 ? extension : "these")} files yet");
-    }
-
-    private static string FormatSize(long bytes)
-    {
-        string[] units = { "B", "KB", "MB", "GB", "TB" };
-        double value = bytes;
-        int unit = 0;
-        while (value >= 1024 && unit < units.Length - 1)
-        {
-            value /= 1024;
-            unit++;
-        }
-
-        return unit == 0 ? $"{bytes} B" : $"{value:0.#} {units[unit]}";
     }
 }

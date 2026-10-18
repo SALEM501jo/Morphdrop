@@ -10,9 +10,11 @@ internal sealed class ConvertImageAction : IFileAction
 
     public string Label => _target.Name;
 
+    public string? Glyph => null;
+
     public string Description => $"Convert to {_target.Name}";
 
-    public bool AppliesTo(string path) => ImageFormat.CanRead(path) && ImageFormat.FromPath(path) != _target;
+    public bool AppliesTo(string path) => ImageFormat.FromPath(path) is { CanRead: true } source && source != _target;
 
     public string Run(string inputPath) => ImageConverter.Convert(inputPath, _target);
 }

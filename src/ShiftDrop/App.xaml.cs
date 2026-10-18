@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using ImageMagick;
 using ShiftDrop.Actions;
 using ShiftDrop.Input;
 using ShiftDrop.Overlay;
@@ -8,7 +9,10 @@ namespace ShiftDrop;
 
 public partial class App : Application
 {
+    private const string ExitSignalName = @"Local\ShiftDrop.Exit";
+
     private Mutex? _singleInstance;
+    private EventWaitHandle? _exitSignal;
     private DragWatcher? _watcher;
     private TrayIcon? _tray;
 
@@ -23,6 +27,15 @@ public partial class App : Application
             return;
         }
 
+        // "ShiftDrop.exe --exit" asks a running instance to quit (handy when rebuilding or updating).
+        var exitSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ExitSignalName);
+        if (e.Args is ["--exit"])
+        {
+            exitSignal.Set();
+            Shutdown();
+            return;
+        }
+
         _singleInstance = new Mutex(initiallyOwned: false, @"Local\ShiftDrop.SingleInstance", out bool isFirstInstance);
         if (!isFirstInstance)
         {
@@ -30,6 +43,9 @@ public partial class App : Application
             Shutdown();
             return;
         }
+
+        _exitSignal = exitSignal;
+        ThreadPool.RegisterWaitForSingleObject(exitSignal, (_, _) => Dispatcher.InvokeAsync(() => Shutdown()), null, Timeout.Infinite, executeOnlyOnce: true);
 
         DispatcherUnhandledException += (_, args) =>
         {
@@ -55,9 +71,22 @@ public partial class App : Application
         runner.Completed += tray.ShowResult;
         tray.ExitRequested += () => Shutdown();
 
+        // Load ImageMagick's native library in the background so the first conversion doesn't wait for it.
+        Task.Run(() =>
+        {
+            try
+            {
+                using var warmUp = new MagickImage(MagickColors.Transparent, 1, 1);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Could not load ImageMagick", ex);
+            }
+        });
+
         var watcher = new DragWatcher();
         _watcher = watcher;
-        watcher.Triggered += point => Dispatcher.InvokeAsync(() => wheel.ShowAt(point));
+        watcher.Triggered += point => Dispatcher.InvokeAsync(() => wheel.OnShiftPressed(point));
         watcher.DragEnded += () => Dispatcher.InvokeAsync(wheel.OnDragEnded);
         tray.PausedChanged += paused =>
         {
@@ -83,7 +112,9 @@ public partial class App : Application
         _watcher?.Dispose();
         _tray?.Dispose();
         _singleInstance?.Dispose();
-        Log.Info("ShiftDrop stopped");
+        _exitSignal?.Dispose();
+        if (_tray is not null) // not for --exit, --render-wheel or a second instance
+            Log.Info("ShiftDrop stopped");
         Log.Flush();
         base.OnExit(e);
     }

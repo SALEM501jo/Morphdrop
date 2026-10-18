@@ -9,21 +9,40 @@ public sealed class ActionCatalogTests : IDisposable
 
     public void Dispose() => Directory.Delete(_folder, recursive: true);
 
+    private static string[] Labels(IReadOnlyList<ActionPage> pages, string page) =>
+        pages.Single(p => p.Name == page).Actions.Select(a => a.Label).ToArray();
+
     [Fact]
-    public void AnImage_OffersEveryOtherFormat()
+    public void APng_GetsEveryOtherFormatAndEveryTool()
     {
         string png = WritePng(Path.Combine(_folder, "a.png"), 2, 2, (_, _) => Red);
 
-        Assert.Equal(new[] { "JPG", "ICO", "BMP", "TIFF", "GIF" }, ActionCatalog.For(new[] { png }).Select(a => a.Label));
+        IReadOnlyList<ActionPage> pages = ActionCatalog.For(new[] { png });
+
+        Assert.Equal(new[] { "Convert", "Tools" }, pages.Select(p => p.Name));
+        Assert.Equal(new[] { "JPG", "WEBP", "AVIF", "PDF", "ICO", "TIFF", "GIF", "BMP" }, Labels(pages, "Convert"));
+        Assert.Equal(new[] { "Compress", "50%", "Max 1920", "Clean" }, Labels(pages, "Tools"));
+    }
+
+    [Fact]
+    public void AHeicPhoto_CanBeConvertedToAnythingAndResized()
+    {
+        IReadOnlyList<ActionPage> pages = ActionCatalog.ForFileName("IMG_0001.HEIC");
+
+        Assert.Equal(new[] { "PNG", "JPG", "WEBP", "AVIF", "PDF", "ICO", "TIFF", "GIF", "BMP" }, Labels(pages, "Convert"));
+        Assert.Equal(new[] { "50%", "Max 1920" }, Labels(pages, "Tools"));
+    }
+
+    [Fact]
+    public void AnIcon_HasNoToolsPage()
+    {
+        Assert.Equal(new[] { "Convert" }, ActionCatalog.ForFileName("app.ico").Select(p => p.Name));
     }
 
     [Fact]
     public void JpegAliases_CountAsJpg()
     {
-        string jpeg = Path.Combine(_folder, "b.JPEG");
-        File.WriteAllBytes(jpeg, Array.Empty<byte>());
-
-        Assert.DoesNotContain("JPG", ActionCatalog.For(new[] { jpeg }).Select(a => a.Label));
+        Assert.DoesNotContain("JPG", Labels(ActionCatalog.ForFileName("b.JPEG"), "Convert"));
     }
 
     [Fact]
@@ -34,5 +53,6 @@ public sealed class ActionCatalogTests : IDisposable
 
         Assert.Empty(ActionCatalog.For(new[] { text }));
         Assert.Empty(ActionCatalog.For(new[] { _folder }));
+        Assert.Empty(ActionCatalog.ForFileName("report.pdf")); // PDFs can be written, not read (yet)
     }
 }

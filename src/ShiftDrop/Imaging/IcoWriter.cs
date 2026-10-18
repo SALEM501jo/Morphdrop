@@ -1,6 +1,4 @@
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using ImageMagick;
 
 namespace ShiftDrop.Imaging;
 
@@ -12,14 +10,11 @@ internal static class IcoWriter
 {
     public static readonly int[] StandardSizes = { 16, 24, 32, 48, 64, 128, 256 };
 
-    public static void Write(BitmapSource image, Stream output)
+    public static void Write(IMagickImage<byte> image, Stream output)
     {
-        int largest = Math.Max(image.PixelWidth, image.PixelHeight);
+        uint largest = Math.Max(image.Width, image.Height);
         int[] sizes = StandardSizes.Where(size => size <= largest).DefaultIfEmpty(StandardSizes[0]).ToArray();
-
-        // Scale in premultiplied alpha so transparent edges don't pick up dark fringes.
-        BitmapSource premultiplied = new FormatConvertedBitmap(image, PixelFormats.Pbgra32, null, 0);
-        byte[][] entries = sizes.Select(size => EncodePng(FitIntoSquare(premultiplied, size))).ToArray();
+        byte[][] entries = sizes.Select(size => RenderEntry(image, (uint)size)).ToArray();
 
         using var writer = new BinaryWriter(output, System.Text.Encoding.UTF8, leaveOpen: true);
         writer.Write((ushort)0); // reserved
@@ -45,34 +40,12 @@ internal static class IcoWriter
             writer.Write(entry);
     }
 
-    private static BitmapSource FitIntoSquare(BitmapSource premultiplied, int size)
+    private static byte[] RenderEntry(IMagickImage<byte> image, uint size)
     {
-        double scale = (double)size / Math.Max(premultiplied.PixelWidth, premultiplied.PixelHeight);
-        BitmapSource scaled = Math.Abs(scale - 1) < 1e-9
-            ? premultiplied
-            : new TransformedBitmap(premultiplied, new ScaleTransform(scale, scale));
-        var bgra = new FormatConvertedBitmap(scaled, PixelFormats.Bgra32, null, 0);
-
-        int width = Math.Min(size, bgra.PixelWidth);
-        int height = Math.Min(size, bgra.PixelHeight);
-        var region = new byte[width * height * 4];
-        bgra.CopyPixels(new Int32Rect(0, 0, width, height), region, width * 4, 0);
-
-        var square = new byte[size * size * 4];
-        int left = (size - width) / 2;
-        int top = (size - height) / 2;
-        for (int y = 0; y < height; y++)
-            Buffer.BlockCopy(region, y * width * 4, square, ((top + y) * size + left) * 4, width * 4);
-
-        return BitmapSource.Create(size, size, 96, 96, PixelFormats.Bgra32, null, square, size * 4);
-    }
-
-    private static byte[] EncodePng(BitmapSource image)
-    {
-        var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(image));
-        using var buffer = new MemoryStream();
-        encoder.Save(buffer);
-        return buffer.ToArray();
+        using IMagickImage<byte> entry = image.Clone();
+        entry.Alpha(AlphaOption.Set);
+        entry.Resize(new MagickGeometry(size, size));
+        entry.Extent(size, size, Gravity.Center, MagickColors.Transparent);
+        return entry.ToByteArray(MagickFormat.Png32);
     }
 }

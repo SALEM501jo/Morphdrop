@@ -2,7 +2,8 @@ namespace ShiftDrop.Actions;
 
 internal sealed record ActionResult(
     IFileAction Action,
-    IReadOnlyList<string> Outputs,
+    IReadOnlyList<(string Input, string Output)> Outputs,
+    IReadOnlyList<(string Input, string Reason)> Skipped,
     IReadOnlyList<(string Input, Exception Error)> Errors);
 
 /// <summary>
@@ -22,15 +23,21 @@ internal sealed class ActionRunner
         SynchronizationContext? caller = SynchronizationContext.Current;
         Task.Run(() =>
         {
-            var outputs = new List<string>();
+            var outputs = new List<(string, string)>();
+            var skipped = new List<(string, string)>();
             var errors = new List<(string, Exception)>();
             foreach (string input in inputs)
             {
                 try
                 {
                     string output = action.Run(input);
-                    outputs.Add(output);
+                    outputs.Add((input, output));
                     Log.Info($"{action.Description}: '{input}' -> '{output}'");
+                }
+                catch (NothingToDoException nothing)
+                {
+                    skipped.Add((input, nothing.Message));
+                    Log.Info($"{action.Description}: nothing to do for '{input}': {nothing.Message}");
                 }
                 catch (Exception ex)
                 {
@@ -39,7 +46,7 @@ internal sealed class ActionRunner
                 }
             }
 
-            var result = new ActionResult(action, outputs, errors);
+            var result = new ActionResult(action, outputs, skipped, errors);
             if (caller is null)
                 Completed?.Invoke(result);
             else

@@ -15,7 +15,11 @@
         <!-- Frosted ring behind the slices -->
         <Ellipse Width="336" Height="336" Fill="#73FFFFFF" Stroke="#B3FFFFFF" StrokeThickness="1" />
 
-        <Canvas x:Name="SliceLayer" Width="360" Height="360" />
+        <Canvas x:Name="SliceLayer" Width="360" Height="360" RenderTransformOrigin="0.5,0.5">
+            <Canvas.RenderTransform>
+                <RotateTransform x:Name="SliceTurn" Angle="0" />
+            </Canvas.RenderTransform>
+        </Canvas>
 
         <Border Width="116" Height="116" CornerRadius="58"
                 Background="#F7FFFFFF" BorderBrush="#1F000000" BorderThickness="1">
@@ -24,6 +28,8 @@
                            TextAlignment="Center" TextTrimming="CharacterEllipsis" />
                 <TextBlock x:Name="HubSubtitle" FontSize="11" Foreground="#5C5C5C" Margin="0,2,0,0"
                            TextAlignment="Center" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="30" />
+                <TextBlock x:Name="HubHint" FontSize="10" FontWeight="SemiBold" Foreground="#FF5F3A" Margin="0,4,0,0"
+                           TextAlignment="Center" Visibility="Collapsed" />
             </StackPanel>
         </Border>
     </Grid>

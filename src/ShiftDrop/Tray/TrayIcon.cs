@@ -59,11 +59,29 @@ internal sealed class TrayIcon : IDisposable
         }
         else if (result.Outputs.Count == 1)
         {
-            Show($"Saved {Path.GetFileName(result.Outputs[0])}", "Click to show it in File Explorer.", Forms.ToolTipIcon.Info, result.Outputs[0]);
+            (string input, string output) = result.Outputs[0];
+            Show($"Saved {Path.GetFileName(output)}", $"{SizeChange(input, output)}Click to show it in File Explorer.", Forms.ToolTipIcon.Info, output);
         }
         else if (result.Outputs.Count > 1)
         {
-            Show($"Saved {result.Outputs.Count} files", "Click to show them in File Explorer.", Forms.ToolTipIcon.Info, result.Outputs[^1]);
+            Show($"Saved {result.Outputs.Count} files", "Click to show them in File Explorer.", Forms.ToolTipIcon.Info, result.Outputs[^1].Output);
+        }
+        else if (result.Skipped.Count > 0)
+        {
+            (string input, string reason) = result.Skipped[0];
+            ShowMessage($"Nothing to do for {Path.GetFileName(input)}", reason);
+        }
+    }
+
+    private static string SizeChange(string input, string output)
+    {
+        try
+        {
+            return $"{ByteSize.Format(new FileInfo(input).Length)} → {ByteSize.Format(new FileInfo(output).Length)}. ";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return "";
         }
     }
 
