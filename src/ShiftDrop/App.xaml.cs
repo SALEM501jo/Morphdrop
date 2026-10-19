@@ -66,10 +66,25 @@ public partial class App : Application
         var wheel = new WheelWindow(runner);
         wheel.Prewarm();
 
-        var tray = new TrayIcon();
+        var autoStart = new AutoStart(Environment.ProcessPath!);
+        var tray = new TrayIcon(autoStart.IsEnabled);
         _tray = tray;
+        runner.Working += tray.ShowWorking;
         runner.Completed += tray.ShowResult;
         tray.ExitRequested += () => Shutdown();
+        tray.StartWithWindowsChanged += enabled =>
+        {
+            try
+            {
+                autoStart.SetEnabled(enabled);
+                Log.Info(enabled ? $"Start with Windows on: {Environment.ProcessPath}" : "Start with Windows off");
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Could not change Start with Windows", ex);
+                tray.ShowError("Couldn't change Start with Windows", ex.Message);
+            }
+        };
 
         // Load ImageMagick's native library in the background so the first conversion doesn't wait for it.
         Task.Run(() =>

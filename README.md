@@ -54,7 +54,8 @@ dotnet test
 dotnet run --project src/ShiftDrop
 ```
 
-ShiftDrop lives in the notification area (tray). Right-click its icon to pause it, open the log, or exit.
+ShiftDrop lives in the notification area (tray). Right-click its icon to pause it, turn on **Start with Windows**
+(off by default), open the log, or exit. Jobs that take more than a moment show a "Working…" notification.
 The log is at `%LOCALAPPDATA%\ShiftDrop\shiftdrop.log`.
 
 Developer switches:

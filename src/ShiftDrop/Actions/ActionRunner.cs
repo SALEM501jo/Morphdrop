@@ -12,16 +12,38 @@ internal sealed record ActionResult(
 /// </summary>
 internal sealed class ActionRunner
 {
+    private readonly TimeSpan _slowAfter;
+
+    /// <param name="slowAfter">How long a job may run before <see cref="Working"/> is raised. Default 0.8 s.</param>
+    public ActionRunner(TimeSpan? slowAfter = null) => _slowAfter = slowAfter ?? TimeSpan.FromMilliseconds(800);
+
+    /// <summary>Raised once when a job is still running after a moment, so the user knows something is happening.</summary>
+    public event Action<IFileAction, IReadOnlyList<string>>? Working;
+
     public event Action<ActionResult>? Completed;
 
-    public void Run(IFileAction action, IReadOnlyList<string> files)
+    /// <returns>The background job, or null when none of the files applied.</returns>
+    public Task? Run(IFileAction action, IReadOnlyList<string> files)
     {
         string[] inputs = files.Where(file => File.Exists(file) && action.AppliesTo(file)).ToArray();
         if (inputs.Length == 0)
-            return;
+            return null;
 
         SynchronizationContext? caller = SynchronizationContext.Current;
-        Task.Run(() =>
+        void Report(Action raise)
+        {
+            if (caller is null)
+                raise();
+            else
+                caller.Post(_ => raise(), null);
+        }
+
+        var finished = new CancellationTokenSource();
+        Task.Delay(_slowAfter, finished.Token).ContinueWith(
+            _ => Report(() => Working?.Invoke(action, inputs)),
+            CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+
+        return Task.Run(() =>
         {
             var outputs = new List<(string, string)>();
             var skipped = new List<(string, string)>();
@@ -46,11 +68,9 @@ internal sealed class ActionRunner
                 }
             }
 
+            finished.Cancel();
             var result = new ActionResult(action, outputs, skipped, errors);
-            if (caller is null)
-                Completed?.Invoke(result);
-            else
-                caller.Post(_ => Completed?.Invoke(result), null);
+            Report(() => Completed?.Invoke(result));
         });
     }
 }

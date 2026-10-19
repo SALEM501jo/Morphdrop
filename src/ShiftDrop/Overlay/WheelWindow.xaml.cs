@@ -128,6 +128,7 @@ internal partial class WheelWindow : Window
             Open(files);
         UpdateHover(e);
         _dropHelper.DragEnter(_hwnd, e.Data, e.Effects);
+        _dropHelper.ShowDragImage(false); // the wheel is the feedback; the thumbnail would cover the hub
     }
 
     private void OnDragOver(object sender, DragEventArgs e)
@@ -147,6 +148,7 @@ internal partial class WheelWindow : Window
 
     private void OnDragLeave(object sender, DragEventArgs e)
     {
+        _dropHelper.ShowDragImage(true);
         _dropHelper.DragLeave();
         if (_phase == Phase.Active)
             FadeOut();
@@ -172,6 +174,7 @@ internal partial class WheelWindow : Window
         }
 
         e.Handled = true;
+        _dropHelper.ShowDragImage(true);
         _dropHelper.Drop(e.Data, e.Effects);
         FadeOut();
     }

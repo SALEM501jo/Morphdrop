@@ -16,17 +16,21 @@ internal sealed class TrayIcon : IDisposable
     private readonly Drawing.Icon _icon;
     private string? _revealOnClick;
 
-    public TrayIcon()
+    public TrayIcon(bool startsWithWindows)
     {
         _icon = CreateIcon(Forms.SystemInformation.SmallIconSize.Width);
 
         var pause = new Forms.ToolStripMenuItem("Pause") { CheckOnClick = true };
         pause.CheckedChanged += (_, _) => PausedChanged?.Invoke(pause.Checked);
 
+        var startWithWindows = new Forms.ToolStripMenuItem("Start with Windows") { CheckOnClick = true, Checked = startsWithWindows };
+        startWithWindows.CheckedChanged += (_, _) => StartWithWindowsChanged?.Invoke(startWithWindows.Checked);
+
         _menu = new Forms.ContextMenuStrip();
         _menu.Items.Add(new Forms.ToolStripMenuItem("Drag a file, then press Shift") { Enabled = false });
         _menu.Items.Add(new Forms.ToolStripSeparator());
         _menu.Items.Add(pause);
+        _menu.Items.Add(startWithWindows);
         _menu.Items.Add("Open log", null, (_, _) => OpenLog());
         _menu.Items.Add(new Forms.ToolStripSeparator());
         _menu.Items.Add("Exit", null, (_, _) => ExitRequested?.Invoke());
@@ -43,7 +47,16 @@ internal sealed class TrayIcon : IDisposable
 
     public event Action<bool>? PausedChanged;
 
+    public event Action<bool>? StartWithWindowsChanged;
+
     public event Action? ExitRequested;
+
+    /// <summary>Shown when a job is still running after a moment; the result notification replaces it.</summary>
+    public void ShowWorking(IFileAction action, IReadOnlyList<string> inputs)
+    {
+        string what = inputs.Count == 1 ? Path.GetFileName(inputs[0]) : $"{inputs.Count} files";
+        Show($"{action.Description}…", $"Working on {what}. You'll get a notification when it's done.", Forms.ToolTipIcon.None, reveal: null);
+    }
 
     public void ShowMessage(string title, string text) => Show(title, text, Forms.ToolTipIcon.Info, reveal: null);
 
