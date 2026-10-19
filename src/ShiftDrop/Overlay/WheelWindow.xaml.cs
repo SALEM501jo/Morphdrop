@@ -92,7 +92,6 @@ internal partial class WheelWindow : Window
         if (!IsVisible)
             Show();
         CenterOn(cursor);
-        KeepBelowDragImage();
         StartHideTimer(GhostTimeout);
         Log.Info($"Shift pressed mid-drag at ({cursor.X}, {cursor.Y}); waiting for the drag to enter the wheel");
     }
@@ -128,7 +127,7 @@ internal partial class WheelWindow : Window
             Open(files);
         UpdateHover(e);
         _dropHelper.DragEnter(_hwnd, e.Data, e.Effects);
-        _dropHelper.ShowDragImage(false); // the wheel is the feedback; the thumbnail would cover the hub
+        KeepAboveDragImage();
     }
 
     private void OnDragOver(object sender, DragEventArgs e)
@@ -144,11 +143,12 @@ internal partial class WheelWindow : Window
         }
 
         _dropHelper.DragOver(e.Effects);
+        if (_phase == Phase.Active)
+            KeepAboveDragImage();
     }
 
     private void OnDragLeave(object sender, DragEventArgs e)
     {
-        _dropHelper.ShowDragImage(true);
         _dropHelper.DragLeave();
         if (_phase == Phase.Active)
             FadeOut();
@@ -174,7 +174,6 @@ internal partial class WheelWindow : Window
         }
 
         e.Handled = true;
-        _dropHelper.ShowDragImage(true);
         _dropHelper.Drop(e.Data, e.Effects);
         FadeOut();
     }
@@ -289,20 +288,25 @@ internal partial class WheelWindow : Window
     }
 
     /// <summary>
-    /// The shell draws the dragged file's thumbnail in its own topmost window ("SysDragImage"). The wheel appears
-    /// mid-drag, so it would cover that thumbnail; slot the wheel just below it instead.
+    /// The shell draws the dragged file's thumbnail in its own topmost window ("SysDragImage"), which would sit on
+    /// the hub's text. IDropTargetHelper.Show(false) doesn't hide Explorer's thumbnail, so the open wheel keeps
+    /// itself above that window instead; the nearly opaque hub and slices then hide it.
     /// </summary>
-    private void KeepBelowDragImage()
+    private void KeepAboveDragImage()
     {
         IntPtr dragImage = FindWindow("SysDragImage", null);
         if (dragImage == IntPtr.Zero || !IsWindowVisible(dragImage))
             return;
 
-        // Inserting below a window that isn't topmost would drop the wheel behind normal windows.
-        if ((GetWindowLongPtr(dragImage, GWL_EXSTYLE).ToInt64() & WS_EX_TOPMOST) == 0)
-            return;
-
-        SetWindowPos(_hwnd, dragImage, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        // Only move when the thumbnail is above the wheel, so repeated calls during the drag cost nothing.
+        for (IntPtr above = NativeMethods.GetWindow(_hwnd, GW_HWNDPREV); above != IntPtr.Zero; above = NativeMethods.GetWindow(above, GW_HWNDPREV))
+        {
+            if (above == dragImage)
+            {
+                SetWindowPos(_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                return;
+            }
+        }
     }
 
     private static string[]? ReadFiles(IDataObject data)

@@ -39,9 +39,6 @@ internal sealed class DropTargetHelper
 
     public void DragLeave() => Call(helper => helper.DragLeave());
 
-    /// <summary>Hides or shows the dragged file's thumbnail (it would cover the wheel's hub).</summary>
-    public void ShowDragImage(bool show) => Call(helper => helper.Show(show));
-
     public void Drop(IDataObject data, DragDropEffects effects) => Call(helper =>
     {
         NativeMethods.POINT point = Cursor();

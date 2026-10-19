@@ -35,6 +35,8 @@ internal static class NativeMethods
 
     public const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
 
+    public const uint GW_HWNDPREV = 3;
+
     [StructLayout(LayoutKind.Sequential)]
     public struct POINT
     {
@@ -176,6 +178,9 @@ internal static class NativeMethods
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
 
     [DllImport("user32.dll")]
     public static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
