@@ -1,4 +1,5 @@
 using Morphdrop.Imaging;
+using Morphdrop.Documents;
 using Morphdrop.Media;
 
 namespace Morphdrop.Actions;
@@ -21,6 +22,7 @@ internal static class ActionCatalog
         ImageFormat.WheelTargets.Select(format => (IFileAction)new ConvertImageAction(format))
             .Concat(new[] { ImageFormat.Png, ImageFormat.Jpeg, ImageFormat.WebP }.Select(format => new PdfToImagesAction(format)))
             .Concat(MediaAction.ConvertActions())
+            .Append(new DocumentToPdfAction())
             .ToArray();
 
     private static readonly IFileAction[] ToolActions = new IFileAction[]

@@ -52,6 +52,9 @@ on an action in the wheel that appears. The new file lands next to the original.
     Windows, so nothing extra is installed.
   - Drag several images onto PDF to get **one PDF** with a page per image, in File Explorer's name order
     (`scan 2` before `scan 10`), saved as `first name (N pages).pdf`.
+  - Drop a Word, Excel or PowerPoint file (`.docx`, `.doc`, `.rtf`, `.odt`, `.xlsx`, `.xls`, `.ods`, `.pptx`,
+    `.ppt`, `.odp`) on PDF to save it as a PDF. This uses your installed Microsoft Office (in the background,
+    read-only), or LibreOffice if you don't have Office. Without either, documents get no PDF slice.
 - **Never overwrites anything**: results are named `photo (compressed).jpg`, `photo (1).png` and so on.
 - Drop on the hub (centre) or drag away to cancel. Drag a few files at once to process them all.
 
