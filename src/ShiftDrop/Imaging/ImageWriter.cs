@@ -4,9 +4,21 @@ namespace ShiftDrop.Imaging;
 
 internal static class ImageWriter
 {
-    public const uint JpegQuality = 92;
-    public const uint WebPQuality = 85;
-    public const uint AvifQuality = 70;
+    /// <summary>Set from the Settings window; High is the default.</summary>
+    public static Settings.QualityPreset Preset { get; set; } = Settings.QualityPreset.High;
+
+    public static uint JpegQuality => Qualities(Preset).Jpeg;
+
+    public static uint WebPQuality => Qualities(Preset).WebP;
+
+    public static uint AvifQuality => Qualities(Preset).Avif;
+
+    public static (uint Jpeg, uint WebP, uint Avif) Qualities(Settings.QualityPreset preset) => preset switch
+    {
+        Settings.QualityPreset.Balanced => (85, 80, 60),
+        Settings.QualityPreset.Smaller => (75, 70, 50),
+        _ => (92, 85, 70),
+    };
 
     // libaom's default speed takes ~6 s for a 12 MP photo; 6 is ~5x faster for about the same size.
     private const string AvifSpeed = "6";

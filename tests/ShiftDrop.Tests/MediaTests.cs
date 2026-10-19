@@ -100,7 +100,7 @@ public sealed class FfmpegInstallerTests : IDisposable
 {
     private readonly string _folder = Directory.CreateTempSubdirectory("shiftdrop-tests-").FullName;
 
-    public void Dispose() => Directory.Delete(_folder, recursive: true);
+    public void Dispose() => TestFolder.Delete(_folder);
 
     private static MemoryStream Zip(string entryName, byte[] content)
     {
@@ -142,7 +142,7 @@ public sealed class MediaConversionTests : IDisposable
 {
     private readonly string _folder = Directory.CreateTempSubdirectory("shiftdrop-media-").FullName;
 
-    public void Dispose() => Directory.Delete(_folder, recursive: true);
+    public void Dispose() => TestFolder.Delete(_folder);
 
     private string InFolder(string name) => Path.Combine(_folder, name);
 

@@ -8,7 +8,7 @@ public sealed class ImageToolsTests : IDisposable
 {
     private readonly string _folder = Directory.CreateTempSubdirectory("shiftdrop-tests-").FullName;
 
-    public void Dispose() => Directory.Delete(_folder, recursive: true);
+    public void Dispose() => TestFolder.Delete(_folder);
 
     private string InFolder(string name) => Path.Combine(_folder, name);
 

@@ -14,23 +14,21 @@ internal sealed class TrayIcon : IDisposable
     private readonly Forms.NotifyIcon _notifyIcon;
     private readonly Forms.ContextMenuStrip _menu;
     private readonly Drawing.Icon _icon;
+    private readonly Forms.ToolStripMenuItem _hint = new("Drag a file, then press Shift") { Enabled = false };
     private string? _revealOnClick;
 
-    public TrayIcon(bool startsWithWindows)
+    public TrayIcon()
     {
         _icon = CreateIcon(Forms.SystemInformation.SmallIconSize.Width);
 
         var pause = new Forms.ToolStripMenuItem("Pause") { CheckOnClick = true };
         pause.CheckedChanged += (_, _) => PausedChanged?.Invoke(pause.Checked);
 
-        var startWithWindows = new Forms.ToolStripMenuItem("Start with Windows") { CheckOnClick = true, Checked = startsWithWindows };
-        startWithWindows.CheckedChanged += (_, _) => StartWithWindowsChanged?.Invoke(startWithWindows.Checked);
-
         _menu = new Forms.ContextMenuStrip();
-        _menu.Items.Add(new Forms.ToolStripMenuItem("Drag a file, then press Shift") { Enabled = false });
+        _menu.Items.Add(_hint);
         _menu.Items.Add(new Forms.ToolStripSeparator());
+        _menu.Items.Add(new Forms.ToolStripMenuItem("Settings…", null, (_, _) => SettingsRequested?.Invoke()) { Font = new Drawing.Font(_menu.Font, Drawing.FontStyle.Bold) });
         _menu.Items.Add(pause);
-        _menu.Items.Add(startWithWindows);
         _menu.Items.Add("Open log", null, (_, _) => OpenLog());
         _menu.Items.Add(new Forms.ToolStripSeparator());
         _menu.Items.Add("Exit", null, (_, _) => ExitRequested?.Invoke());
@@ -43,13 +41,19 @@ internal sealed class TrayIcon : IDisposable
             Visible = true,
         };
         _notifyIcon.BalloonTipClicked += (_, _) => RevealOutput();
+        _notifyIcon.DoubleClick += (_, _) => SettingsRequested?.Invoke();
     }
 
     public event Action<bool>? PausedChanged;
 
-    public event Action<bool>? StartWithWindowsChanged;
+    public event Action? SettingsRequested;
 
     public event Action? ExitRequested;
+
+    /// <summary>With "only problems" chosen, results and progress notices stay quiet; errors are always shown.</summary>
+    public bool OnlyNotifyProblems { get; set; }
+
+    public void SetTriggerName(string key) => _hint.Text = $"Drag a file, then press {key}";
 
     /// <summary>A short status in the icon's tooltip (e.g. progress), or null for the plain name.</summary>
     public void SetStatus(string? status) => _notifyIcon.Text = status is null ? "ShiftDrop" : Truncate($"ShiftDrop – {status}", 127);
@@ -57,6 +61,9 @@ internal sealed class TrayIcon : IDisposable
     /// <summary>Shown when a job is still running after a moment; the result notification replaces it.</summary>
     public void ShowWorking(IFileAction action, IReadOnlyList<string> inputs)
     {
+        if (OnlyNotifyProblems)
+            return;
+
         string what = inputs.Count == 1 ? Path.GetFileName(inputs[0]) : $"{inputs.Count} files";
         Show($"{action.Description}…", $"Working on {what}. You'll get a notification when it's done.", Forms.ToolTipIcon.None, reveal: null);
     }
@@ -72,6 +79,10 @@ internal sealed class TrayIcon : IDisposable
             (string input, Exception error) = result.Errors[0];
             string more = result.Errors.Count > 1 ? $" ({result.Errors.Count} files)" : "";
             ShowError($"{result.Action.Description} failed{more}", $"{Path.GetFileName(input)}: {error.Message}");
+        }
+        else if (OnlyNotifyProblems)
+        {
+            return;
         }
         else if (result.Outputs.Count == 1)
         {

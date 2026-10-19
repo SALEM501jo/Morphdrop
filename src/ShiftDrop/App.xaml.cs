@@ -3,6 +3,7 @@ using ImageMagick;
 using ShiftDrop.Actions;
 using ShiftDrop.Editing;
 using ShiftDrop.Media;
+using ShiftDrop.Settings;
 using ShiftDrop.Input;
 using ShiftDrop.Overlay;
 using ShiftDrop.Tray;
@@ -15,6 +16,7 @@ public partial class App : Application
 
     private Mutex? _singleInstance;
     private EventWaitHandle? _exitSignal;
+    private string _triggerName = "Shift";
     private DragWatcher? _watcher;
     private TrayIcon? _tray;
 
@@ -79,7 +81,8 @@ public partial class App : Application
         wheel.Prewarm();
 
         var autoStart = new AutoStart(Environment.ProcessPath!);
-        var tray = new TrayIcon(autoStart.IsEnabled);
+        var settings = new SettingsStore(SettingsStore.DefaultPath);
+        var tray = new TrayIcon();
         _tray = tray;
         ffmpegSetup = new FfmpegSetup(tray);
         FfmpegRunner.ProgressChanged += (description, share) =>
@@ -87,19 +90,7 @@ public partial class App : Application
         runner.Working += tray.ShowWorking;
         runner.Completed += tray.ShowResult;
         tray.ExitRequested += () => Shutdown();
-        tray.StartWithWindowsChanged += enabled =>
-        {
-            try
-            {
-                autoStart.SetEnabled(enabled);
-                Log.Info(enabled ? $"Start with Windows on: {Environment.ProcessPath}" : "Start with Windows off");
-            }
-            catch (Exception ex)
-            {
-                Log.Error("Could not change Start with Windows", ex);
-                tray.ShowError("Couldn't change Start with Windows", ex.Message);
-            }
-        };
+        tray.SettingsRequested += () => SettingsWindow.Show(settings, autoStart);
 
         // Load ImageMagick's native library in the background so the first conversion doesn't wait for it.
         Task.Run(() =>
@@ -124,11 +115,37 @@ public partial class App : Application
             Log.Info(paused ? "Paused" : "Resumed");
         };
 
+        void Apply(AppSettings current)
+        {
+            (int key, string name) = current.TriggerKey switch
+            {
+                TriggerKey.Ctrl => (Interop.NativeMethods.VK_CONTROL, "Ctrl"),
+                TriggerKey.Alt => (Interop.NativeMethods.VK_MENU, "Alt"),
+                _ => (Interop.NativeMethods.VK_SHIFT, "Shift"),
+            };
+            watcher.TriggerKey = key;
+            wheel.TriggerName = name;
+            tray.SetTriggerName(name);
+            wheel.EnabledPages = current.EnabledPages;
+            wheel.Theme = current.Theme;
+            Imaging.ImageWriter.Preset = current.Quality;
+            OutputFile.Folder = current.OutputFolder;
+            tray.OnlyNotifyProblems = current.Notifications == NotificationLevel.ErrorsOnly;
+            _triggerName = name;
+        }
+
+        Apply(settings.Current);
+        settings.Changed += changed =>
+        {
+            Apply(changed);
+            Log.Info($"Settings changed: {changed}");
+        };
+
         try
         {
             watcher.Start();
-            Log.Info("Mouse hook installed; waiting for drag + Shift");
-            tray.ShowMessage("ShiftDrop is running", "Drag a file, then press Shift to open the wheel.");
+            Log.Info($"Mouse hook installed; waiting for drag + {_triggerName}");
+            tray.ShowMessage("ShiftDrop is running", $"Drag a file, then press {_triggerName} to open the wheel.");
         }
         catch (Exception ex)
         {

@@ -12,7 +12,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <RootNamespace>ShiftDrop</RootNamespace>
-    <Version>0.5.0</Version>
+    <Version>0.6.0</Version>
     <!-- WFAC010 / WFO0003 ask WinForms apps to set DPI mode in code; this is a WPF app, which takes it from app.manifest. -->
     <NoWarn>$(NoWarn);WFAC010;WFO0003</NoWarn>
   </PropertyGroup>

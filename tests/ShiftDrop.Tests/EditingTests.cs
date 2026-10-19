@@ -63,7 +63,7 @@ public sealed class ImageEditTests : IDisposable
 {
     private readonly string _folder = Directory.CreateTempSubdirectory("shiftdrop-tests-").FullName;
 
-    public void Dispose() => Directory.Delete(_folder, recursive: true);
+    public void Dispose() => TestFolder.Delete(_folder);
 
     private string InFolder(string name) => Path.Combine(_folder, name);
 
@@ -208,7 +208,7 @@ public sealed class BackgroundAndEditorTests : IDisposable
 {
     private readonly string _folder = Directory.CreateTempSubdirectory("shiftdrop-tests-").FullName;
 
-    public void Dispose() => Directory.Delete(_folder, recursive: true);
+    public void Dispose() => TestFolder.Delete(_folder);
 
     [Theory]
     [InlineData(1000, 500, null, 1160, 660)] // 8% of the long side on every side

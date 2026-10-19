@@ -14,9 +14,9 @@ public partial class WheelView : UserControl
     private const double RestingOpacity = 0.92;
 
     private static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
-    private static readonly Brush SliceBrush = Frozen(Colors.White);
+    private Brush _sliceBrush = Frozen(Colors.White);
     private static readonly Brush SliceHotBrush = Frozen(Color.FromRgb(0xFF, 0x5F, 0x3A));
-    private static readonly Brush LabelBrush = Frozen(Color.FromRgb(0x26, 0x26, 0x26));
+    private Brush _labelBrush = Frozen(Color.FromRgb(0x26, 0x26, 0x26));
     private static readonly Brush LabelHotBrush = Frozen(Colors.White);
 
     private readonly List<Slice> _slices = new();
@@ -39,8 +39,8 @@ public partial class WheelView : UserControl
             var shape = new Shapes.Path
             {
                 Data = WheelGeometry.CreateSlice(i, items.Count),
-                Fill = SliceBrush,
-                Stroke = SliceBrush,
+                Fill = _sliceBrush,
+                Stroke = _sliceBrush,
                 StrokeThickness = WheelGeometry.CornerRadius * 2,
                 StrokeLineJoin = PenLineJoin.Round,
                 Opacity = RestingOpacity,
@@ -56,6 +56,19 @@ public partial class WheelView : UserControl
             SliceLayer.Children.Add(labelBox);
             _slices.Add(new Slice(shape, texts));
         }
+    }
+
+    /// <summary>Light or dark colors; call before <see cref="SetSlices"/> so new slices use them.</summary>
+    public void SetDarkTheme(bool dark)
+    {
+        _sliceBrush = Frozen(dark ? Color.FromRgb(0x2D, 0x2D, 0x2D) : Colors.White);
+        _labelBrush = Frozen(dark ? Color.FromRgb(0xF0, 0xF0, 0xF0) : Color.FromRgb(0x26, 0x26, 0x26));
+        Ring.Fill = Frozen(dark ? Color.FromArgb(0x8C, 0x1E, 0x1E, 0x1E) : Color.FromArgb(0x73, 0xFF, 0xFF, 0xFF));
+        Ring.Stroke = Frozen(dark ? Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF));
+        Hub.Background = Frozen(dark ? Color.FromArgb(0xF7, 0x20, 0x20, 0x20) : Color.FromArgb(0xF7, 0xFF, 0xFF, 0xFF));
+        Hub.BorderBrush = Frozen(dark ? Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x1F, 0, 0, 0));
+        HubTitle.Foreground = Frozen(dark ? Colors.White : Color.FromRgb(0x1F, 0x1F, 0x1F));
+        HubSubtitle.Foreground = Frozen(dark ? Color.FromRgb(0xB4, 0xB4, 0xB4) : Color.FromRgb(0x5C, 0x5C, 0x5C));
     }
 
     public void SetHub(string title, string subtitle)
@@ -103,7 +116,7 @@ public partial class WheelView : UserControl
         SliceLayer.BeginAnimation(OpacityProperty, new DoubleAnimation(0.2, 1, duration) { EasingFunction = ease });
     }
 
-    private static (FrameworkElement Content, TextBlock[] Texts) CreateLabel(WheelItem item)
+    private (FrameworkElement Content, TextBlock[] Texts) CreateLabel(WheelItem item)
     {
         if (item.Glyph is null)
         {
@@ -112,7 +125,7 @@ public partial class WheelView : UserControl
                 Text = item.Label,
                 FontSize = 13,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = LabelBrush,
+                Foreground = _labelBrush,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
             };
@@ -124,7 +137,7 @@ public partial class WheelView : UserControl
             Text = item.Glyph,
             FontFamily = IconFont,
             FontSize = 20,
-            Foreground = LabelBrush,
+            Foreground = _labelBrush,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         var caption = new TextBlock
@@ -132,7 +145,7 @@ public partial class WheelView : UserControl
             Text = item.Label.ToUpperInvariant(),
             FontSize = 10,
             FontWeight = FontWeights.SemiBold,
-            Foreground = LabelBrush,
+            Foreground = _labelBrush,
             Margin = new Thickness(0, 4, 0, 0),
             TextAlignment = TextAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
@@ -146,12 +159,12 @@ public partial class WheelView : UserControl
         return (stack, new[] { glyph, caption });
     }
 
-    private static void Paint(Slice slice, bool hot)
+    private void Paint(Slice slice, bool hot)
     {
-        slice.Shape.Fill = slice.Shape.Stroke = hot ? SliceHotBrush : SliceBrush;
+        slice.Shape.Fill = slice.Shape.Stroke = hot ? SliceHotBrush : _sliceBrush;
         slice.Shape.Opacity = hot ? 1 : RestingOpacity;
         foreach (TextBlock text in slice.Texts)
-            text.Foreground = hot ? LabelHotBrush : LabelBrush;
+            text.Foreground = hot ? LabelHotBrush : _labelBrush;
     }
 
     private static Brush Frozen(Color color)

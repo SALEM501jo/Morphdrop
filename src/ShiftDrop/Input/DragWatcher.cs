@@ -23,12 +23,20 @@ internal sealed class DragWatcher : IDisposable
     private Thread? _thread;
     private uint _threadId;
     private volatile bool _enabled = true;
+    private volatile int _triggerKey = VK_SHIFT;
 
     /// <summary>Shift was pressed mid-drag; the argument is the cursor position in physical screen pixels.</summary>
     public event Action<POINT>? Triggered;
 
     /// <summary>The mouse button that started the drag was released.</summary>
     public event Action? DragEnded;
+
+    /// <summary>The virtual key that opens the wheel mid-drag (Shift, Ctrl or Alt).</summary>
+    public int TriggerKey
+    {
+        get => _triggerKey;
+        set => _triggerKey = value;
+    }
 
     public bool Enabled
     {
@@ -119,9 +127,9 @@ internal sealed class DragWatcher : IDisposable
                     POINT point = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(data).pt;
                     GestureEvent result = msg switch
                     {
-                        WM_MOUSEMOVE => _gesture.Move(point, IsDown(VK_SHIFT)),
-                        WM_LBUTTONDOWN => _gesture.ButtonDown(DragButton.Left, point, IsDown(VK_SHIFT)),
-                        WM_RBUTTONDOWN => _gesture.ButtonDown(DragButton.Right, point, IsDown(VK_SHIFT)),
+                        WM_MOUSEMOVE => _gesture.Move(point, IsDown(_triggerKey)),
+                        WM_LBUTTONDOWN => _gesture.ButtonDown(DragButton.Left, point, IsDown(_triggerKey)),
+                        WM_RBUTTONDOWN => _gesture.ButtonDown(DragButton.Right, point, IsDown(_triggerKey)),
                         WM_LBUTTONUP => _gesture.ButtonUp(DragButton.Left),
                         _ => _gesture.ButtonUp(DragButton.Right),
                     };
@@ -140,7 +148,7 @@ internal sealed class DragWatcher : IDisposable
     private void Poll()
     {
         GetCursorPos(out POINT point);
-        Raise(_gesture.Poll(IsDown(VK_SHIFT), IsDown(VK_LBUTTON) || IsDown(VK_RBUTTON)), point);
+        Raise(_gesture.Poll(IsDown(_triggerKey), IsDown(VK_LBUTTON) || IsDown(VK_RBUTTON)), point);
     }
 
     private void Raise(GestureEvent result, POINT point)

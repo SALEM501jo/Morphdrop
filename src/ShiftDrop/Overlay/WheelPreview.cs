@@ -7,7 +7,7 @@ using ShiftDrop.Actions;
 namespace ShiftDrop.Overlay;
 
 /// <summary>
-/// Renders every page of the wheel for a PNG to one image without showing any window
+/// Renders every page of the wheel for a PNG, in the light and dark themes, to one image without showing any window
 /// (<c>ShiftDrop.exe --render-wheel out.png</c>). Handy for checking the design and for the README.
 /// </summary>
 internal static class WheelPreview
@@ -18,21 +18,28 @@ internal static class WheelPreview
     public static void Render(string outputPath)
     {
         IReadOnlyList<ActionPage> pages = ActionCatalog.ForFileName("photo.png");
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(Margin / 2) };
-        for (int i = 0; i < pages.Count; i++)
+        var rows = new StackPanel { Margin = new Thickness(Margin / 2) };
+        foreach (bool dark in new[] { false, true })
         {
-            var wheel = new WheelView { Margin = new Thickness(Margin / 2) };
-            wheel.SetSlices(pages[i].Actions.Select(action => new WheelItem(action.Label, action.Glyph)).ToList());
-            wheel.Highlight(0);
-            wheel.SetHub("1.2 MB", pages[i].Actions[0].Description);
-            wheel.SetHint(pages.Count > 1 ? $"Shift → {pages[(i + 1) % pages.Count].Name}" : null);
-            row.Children.Add(wheel);
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            for (int i = 0; i < pages.Count; i++)
+            {
+                var wheel = new WheelView { Margin = new Thickness(Margin / 2) };
+                wheel.SetDarkTheme(dark);
+                wheel.SetSlices(pages[i].Actions.Select(action => new WheelItem(action.Label, action.Glyph)).ToList());
+                wheel.Highlight(0);
+                wheel.SetHub("1.2 MB", pages[i].Actions[0].Description);
+                wheel.SetHint(pages.Count > 1 ? $"Shift → {pages[(i + 1) % pages.Count].Name}" : null);
+                row.Children.Add(wheel);
+            }
+
+            rows.Children.Add(row);
         }
 
         var scene = new Border
         {
             Background = new LinearGradientBrush(Color.FromRgb(0xFF, 0x7A, 0x45), Color.FromRgb(0x8E, 0x7C, 0xF0), 20),
-            Child = row,
+            Child = rows,
         };
         scene.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         Size size = scene.DesiredSize;

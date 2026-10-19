@@ -9,7 +9,7 @@ public sealed class ApngTests : IDisposable
 {
     private readonly string _folder = Directory.CreateTempSubdirectory("shiftdrop-tests-").FullName;
 
-    public void Dispose() => Directory.Delete(_folder, recursive: true);
+    public void Dispose() => TestFolder.Delete(_folder);
 
     private string Save(string name, byte[] png)
     {

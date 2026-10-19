@@ -38,6 +38,14 @@ internal partial class WheelWindow : Window
 
     /// <param name="openEditor">Opens an Edit page tool for a file; called after the drop has completed.</param>
     /// <param name="run">Runs a dropped action (the app makes sure FFmpeg is there for video and audio).</param>
+    /// <summary>The pages the Settings window leaves on; null shows them all.</summary>
+    public IReadOnlySet<string>? EnabledPages { get; set; }
+
+    /// <summary>The trigger key's name, for the hub's "Shift → Tools" hint.</summary>
+    public string TriggerName { get; set; } = "Shift";
+
+    public Settings.ThemeChoice Theme { get; set; } = Settings.ThemeChoice.System;
+
     public WheelWindow(ActionRunner runner, Action<EditAction, string> openEditor, Action<IFileAction, string[]> run)
     {
         _runner = runner;
@@ -198,7 +206,8 @@ internal partial class WheelWindow : Window
     private void Open(string[] files)
     {
         _files = files;
-        _pages = ActionCatalog.For(files);
+        _pages = ActionCatalog.For(files, EnabledPages);
+        Wheel.SetDarkTheme(UseDarkTheme());
         _pageIndex = 0;
         (_hubTitle, _hubSubtitle) = Describe(files, _pages.Count);
         ShowPage();
@@ -227,7 +236,7 @@ internal partial class WheelWindow : Window
     private void ShowPage()
     {
         Wheel.SetSlices(Actions.Select(action => new WheelItem(action.Label, action.Glyph)).ToList());
-        Wheel.SetHint(_pages.Count > 1 ? $"Shift → {_pages[(_pageIndex + 1) % _pages.Count].Name}" : null);
+        Wheel.SetHint(_pages.Count > 1 ? $"{TriggerName} → {_pages[(_pageIndex + 1) % _pages.Count].Name}" : null);
     }
 
     private void UpdateHover(DragEventArgs e)
@@ -250,6 +259,15 @@ internal partial class WheelWindow : Window
             _ => _hubSubtitle,
         });
     }
+
+    /// <summary>"System" follows Windows' app mode, read on each opening so a change applies right away.</summary>
+    private bool UseDarkTheme() => Theme switch
+    {
+        Settings.ThemeChoice.Dark => true,
+        Settings.ThemeChoice.Light => false,
+        _ => Microsoft.Win32.Registry.GetValue(
+            @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1) is 0,
+    };
 
     private void FadeOut()
     {

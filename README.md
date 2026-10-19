@@ -3,9 +3,9 @@
 Convert and shrink files on Windows without opening an app: start dragging a file, press **Shift**, and drop it
 on an action in the wheel that appears. The new file lands next to the original.
 
-<p align="center"><img src="docs/wheel.png" width="840" alt="The three pages of the ShiftDrop wheel: Convert, Tools and Edit"></p>
+<p align="center"><img src="docs/wheel.png" width="840" alt="The three pages of the ShiftDrop wheel, Convert, Tools and Edit, in the light and dark themes"></p>
 
-> **Status: early prototype (v0.5).** Images (conversion between nine formats, compression, resizing, metadata
+> **Status: early prototype (v0.6).** Images (conversion between nine formats, compression, resizing, metadata
 > removal, cropping, backgrounds, redaction), PDFs (to images and back), and video and audio all work.
 
 ## What works today
@@ -76,8 +76,18 @@ dotnet test
 dotnet run --project src/ShiftDrop
 ```
 
-ShiftDrop lives in the notification area (tray). Right-click its icon to pause it, turn on **Start with Windows**
-(off by default), open the log, or exit. Jobs that take more than a moment show a "Working…" notification.
+ShiftDrop lives in the notification area (tray). Double-click its icon (or right-click → **Settings…**) to choose:
+
+- the **key** that opens the wheel: Shift, Ctrl or Alt
+- which **pages** the wheel shows (Convert, Tools, Edit)
+- the **look**: like Windows, light or dark
+- **quality** for JPG, WebP and AVIF: High (92/85/70), Balanced (85/80/60) or Smaller (75/70/50)
+- where results go: **next to the original** or a folder you pick
+- **notifications** for every result, or only problems
+- **Start with Windows**
+
+Changes apply right away and are kept in `%LOCALAPPDATA%\ShiftDrop\settings.json`. The tray menu can also pause ShiftDrop,
+open the log, or exit. Jobs that take more than a moment show a "Working…" notification.
 The log is at `%LOCALAPPDATA%\ShiftDrop\shiftdrop.log`.
 
 Developer switches:
@@ -92,7 +102,7 @@ Developer switches:
 2. ~~WebP / AVIF / HEIC, compress, resize, remove metadata~~ (v0.2)
 3. ~~PDF ↔ images~~ (v0.3), ~~editing tools: crop, background, redact~~ (v0.4)
 4. ~~Video and audio (FFmpeg, downloaded on first use)~~ (v0.5)
-5. Settings: start with Windows, choose the modifier key, light/dark theme
+5. ~~Settings: key, pages, theme, quality, output folder, notifications, start with Windows~~ (v0.6)
 6. Installer, winget and signed releases
 
 ## Known limitations

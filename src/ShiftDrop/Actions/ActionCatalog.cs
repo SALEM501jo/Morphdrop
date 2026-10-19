@@ -45,10 +45,14 @@ internal static class ActionCatalog
     };
 
     /// <summary>The wheel's pages for a drop, picked from the first file. Folders and unknown types get none.</summary>
-    public static IReadOnlyList<ActionPage> For(IReadOnlyList<string> paths)
+    public static IReadOnlyList<ActionPage> For(IReadOnlyList<string> paths, IReadOnlySet<string>? enabledPages = null)
     {
         string? first = paths.FirstOrDefault(File.Exists);
-        return first is null ? Array.Empty<ActionPage>() : ForFileName(first);
+        if (first is null)
+            return Array.Empty<ActionPage>();
+
+        IReadOnlyList<ActionPage> pages = ForFileName(first);
+        return enabledPages is null ? pages : pages.Where(page => enabledPages.Contains(page.Name)).ToArray();
     }
 
     /// <summary>The pages for a file of this name. Only the extension matters, so the file needn't exist.</summary>

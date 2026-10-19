@@ -2,13 +2,26 @@ namespace ShiftDrop.Actions;
 
 internal static class OutputFile
 {
+    /// <summary>Where results go (set from the Settings window); null means next to the original.</summary>
+    public static string? Folder { get; set; }
+
+    /// <summary>The chosen folder, created if needed; next to the original when none is chosen.</summary>
+    internal static string DirectoryFor(string inputPath, string? folder)
+    {
+        if (folder is null)
+            return Path.GetDirectoryName(Path.GetFullPath(inputPath))!;
+
+        Directory.CreateDirectory(folder);
+        return folder;
+    }
+
     /// <summary>
     /// Writes a new file next to <paramref name="inputPath"/>, named after it plus an optional "(suffix)", and
     /// returns its path. A failed write leaves nothing behind.
     /// </summary>
     public static string Save(string inputPath, string? suffix, string extension, Action<Stream> write)
     {
-        string directory = Path.GetDirectoryName(Path.GetFullPath(inputPath))!;
+        string directory = DirectoryFor(inputPath, Folder);
         string baseName = Path.GetFileNameWithoutExtension(inputPath) + (suffix is null ? "" : $" ({suffix})");
         string path;
         using (FileStream output = CreateUnique(directory, baseName, extension, out path))
@@ -56,7 +69,7 @@ internal static class OutputFile
     /// <summary>Creates "name (suffix)" next to <paramref name="inputPath"/>, or "name (suffix) (1)"… if taken.</summary>
     public static string CreateUniqueFolder(string inputPath, string suffix)
     {
-        string directory = Path.GetDirectoryName(Path.GetFullPath(inputPath))!;
+        string directory = DirectoryFor(inputPath, Folder);
         string baseName = $"{Path.GetFileNameWithoutExtension(inputPath)} ({suffix})";
         for (int copy = 0; copy < 10_000; copy++)
         {

@@ -7,7 +7,7 @@ public sealed class ActionCatalogTests : IDisposable
 {
     private readonly string _folder = Directory.CreateTempSubdirectory("shiftdrop-tests-").FullName;
 
-    public void Dispose() => Directory.Delete(_folder, recursive: true);
+    public void Dispose() => TestFolder.Delete(_folder);
 
     private static string[] Labels(IReadOnlyList<ActionPage> pages, string page) =>
         pages.Single(p => p.Name == page).Actions.Select(a => a.Label).ToArray();

@@ -13,7 +13,7 @@
         </Grid.Effect>
 
         <!-- Frosted ring behind the slices -->
-        <Ellipse Width="336" Height="336" Fill="#73FFFFFF" Stroke="#B3FFFFFF" StrokeThickness="1" />
+        <Ellipse x:Name="Ring" Width="336" Height="336" Fill="#73FFFFFF" Stroke="#B3FFFFFF" StrokeThickness="1" />
 
         <Canvas x:Name="SliceLayer" Width="360" Height="360" RenderTransformOrigin="0.5,0.5">
             <Canvas.RenderTransform>
@@ -21,7 +21,7 @@
             </Canvas.RenderTransform>
         </Canvas>
 
-        <Border Width="116" Height="116" CornerRadius="58"
+        <Border x:Name="Hub" Width="116" Height="116" CornerRadius="58"
                 Background="#F7FFFFFF" BorderBrush="#1F000000" BorderThickness="1">
             <StackPanel VerticalAlignment="Center" Margin="12,0">
                 <TextBlock x:Name="HubTitle" FontSize="17" FontWeight="SemiBold" Foreground="#1F1F1F"
