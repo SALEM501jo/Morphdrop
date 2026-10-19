@@ -137,7 +137,7 @@ internal static class ImageTools
         return images.ToByteArray(MagickFormat.WebP);
     }
 
-    private static bool WebPIsLossless(string path)
+    internal static bool WebPIsLossless(string path)
     {
         // Enough to get past a large ICC profile, which comes before the image data.
         var header = new byte[64 * 1024];

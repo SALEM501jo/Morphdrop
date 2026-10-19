@@ -3,10 +3,11 @@
 Convert and shrink files on Windows without opening an app: start dragging a file, press **Shift**, and drop it
 on an action in the wheel that appears. The new file lands next to the original.
 
-<p align="center"><img src="docs/wheel.png" width="720" alt="The two pages of the ShiftDrop wheel: Convert and Tools"></p>
+<p align="center"><img src="docs/wheel.png" width="840" alt="The three pages of the ShiftDrop wheel: Convert, Tools and Edit"></p>
 
-> **Status: early prototype (v0.3).** Images work (conversion between nine formats, compression, resizing,
-> metadata removal), and PDFs turn into images and back. Video and audio are on the roadmap below.
+> **Status: early prototype (v0.4).** Images work (conversion between nine formats, compression, resizing,
+> metadata removal, cropping, backgrounds, redaction), and PDFs turn into images and back. Video and audio are on
+> the roadmap below.
 
 ## What works today
 
@@ -28,6 +29,14 @@ on an action in the wheel that appears. The new file lands next to the original.
   - **50%** and **Max 1920** (fit within 1920 × 1920 px), keeping the format and the animation.
   - **Clean** removes location, camera details, comments and other metadata from JPEG and PNG *without
     re-encoding*: the image data is copied byte for byte, and the orientation is kept so photos don't turn sideways.
+- **Edit** (press Shift a third time): dropping a file on these opens a small editor window.
+  - **Crop**: drag the box or its handles; Free, Original, Square, 4:3, 3:2, 16:9 and 9:16 presets. Animations stay
+    animated.
+  - **Background**: puts the image on a gradient or color with padding, rounded corners and a shadow, in its own
+    size or as a square, 4:5, 16:9 or 9:16 picture.
+  - **Redact**: drag boxes over anything private; they become black boxes or coarse pixels. EXIF (which can hold an
+    unredacted thumbnail and the location) is removed too.
+  - Enter saves a copy, Esc cancels, Ctrl+Z undoes the last redaction box.
 - **PDF**:
   - Drop a PDF on PNG, JPG or WebP to save every page as an image (200 DPI). A one-page PDF gives `name.png`;
     a longer one a folder `name (pages)` with `page 01.png`, `page 02.png`… Rendered by the PDF engine built into
@@ -73,7 +82,7 @@ Developer switches:
 
 1. ~~Gesture, wheel and built-in image conversion~~ (v0.1)
 2. ~~WebP / AVIF / HEIC, compress, resize, remove metadata~~ (v0.2)
-3. ~~PDF ↔ images~~ (v0.3); next: editing tools (crop, add background, redact)
+3. ~~PDF ↔ images~~ (v0.3), ~~editing tools: crop, background, redact~~ (v0.4)
 4. Video and audio (FFmpeg, downloaded on first use)
 5. Settings: start with Windows, choose the modifier key, light/dark theme
 6. Installer, winget and signed releases

@@ -19,7 +19,8 @@ public sealed class ActionCatalogTests : IDisposable
 
         IReadOnlyList<ActionPage> pages = ActionCatalog.For(new[] { png });
 
-        Assert.Equal(new[] { "Convert", "Tools" }, pages.Select(p => p.Name));
+        Assert.Equal(new[] { "Convert", "Tools", "Edit" }, pages.Select(p => p.Name));
+        Assert.Equal(new[] { "Crop", "Background", "Redact" }, Labels(pages, "Edit"));
         Assert.Equal(new[] { "JPG", "WEBP", "AVIF", "PDF", "ICO", "TIFF", "GIF", "BMP" }, Labels(pages, "Convert"));
         Assert.Equal(new[] { "Compress", "50%", "Max 1920", "Clean" }, Labels(pages, "Tools"));
     }

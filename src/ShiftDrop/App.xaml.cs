@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using ImageMagick;
 using ShiftDrop.Actions;
+using ShiftDrop.Editing;
 using ShiftDrop.Input;
 using ShiftDrop.Overlay;
 using ShiftDrop.Tray;
@@ -63,7 +64,7 @@ public partial class App : Application
         Log.Info($"ShiftDrop {typeof(App).Assembly.GetName().Version?.ToString(3)} starting (pid {Environment.ProcessId})");
 
         var runner = new ActionRunner();
-        var wheel = new WheelWindow(runner);
+        var wheel = new WheelWindow(runner, (action, path) => EditorWindow.Open(action, path, runner));
         wheel.Prewarm();
 
         var autoStart = new AutoStart(Environment.ProcessPath!);

@@ -12,6 +12,9 @@ internal static class ActionCatalog
     private const string HalfSizeGlyph = "";
     private const string FitGlyph = "";
     private const string PrivacyGlyph = "";
+    private const string CropGlyph = "";
+    private const string BackgroundGlyph = "";
+    private const string RedactGlyph = "";
 
     private static readonly IFileAction[] ConvertActions =
         ImageFormat.WheelTargets.Select(format => (IFileAction)new ConvertImageAction(format))
@@ -32,6 +35,13 @@ internal static class ActionCatalog
             ImageTools.RemoveMetadata),
     };
 
+    private static readonly IFileAction[] EditActions =
+    {
+        new EditAction(EditKind.Crop, "Crop", CropGlyph, "Crop it"),
+        new EditAction(EditKind.Background, "Background", BackgroundGlyph, "Put it on a background"),
+        new EditAction(EditKind.Redact, "Redact", RedactGlyph, "Hide private details"),
+    };
+
     /// <summary>The wheel's pages for a drop, picked from the first file. Folders and unknown types get none.</summary>
     public static IReadOnlyList<ActionPage> For(IReadOnlyList<string> paths)
     {
@@ -45,6 +55,7 @@ internal static class ActionCatalog
         var pages = new List<ActionPage>();
         AddPage(pages, "Convert", ConvertActions, path);
         AddPage(pages, "Tools", ToolActions, path);
+        AddPage(pages, "Edit", EditActions, path);
         return pages;
     }
 

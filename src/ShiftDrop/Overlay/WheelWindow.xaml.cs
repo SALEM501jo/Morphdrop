@@ -23,6 +23,7 @@ internal partial class WheelWindow : Window
     private static readonly TimeSpan DropTimeout = TimeSpan.FromSeconds(1);
 
     private readonly ActionRunner _runner;
+    private readonly Action<EditAction, string> _openEditor;
     private readonly DropTargetHelper _dropHelper = new();
     private readonly DispatcherTimer _hideTimer;
     private readonly IntPtr _hwnd;
@@ -34,9 +35,11 @@ internal partial class WheelWindow : Window
     private string _hubTitle = "";
     private string _hubSubtitle = "";
 
-    public WheelWindow(ActionRunner runner)
+    /// <param name="openEditor">Opens an Edit page tool for a file; called after the drop has completed.</param>
+    public WheelWindow(ActionRunner runner, Action<EditAction, string> openEditor)
     {
         _runner = runner;
+        _openEditor = openEditor;
         InitializeComponent();
 
         _hideTimer = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher);
@@ -165,7 +168,16 @@ internal partial class WheelWindow : Window
             IFileAction action = Actions[index];
             e.Effects = CopyEffect(e.AllowedEffects);
             Log.Info($"Dropped on '{action.Label}': {action.Description} for {_files.Length} item(s)");
-            _runner.Run(action, _files);
+            if (action is EditAction edit)
+            {
+                // Editors take one file; open it once the drop has returned, so the drag source isn't kept waiting.
+                if (_files.FirstOrDefault(file => File.Exists(file) && edit.AppliesTo(file)) is { } file)
+                    Dispatcher.BeginInvoke(() => _openEditor(edit, file));
+            }
+            else
+            {
+                _runner.Run(action, _files);
+            }
         }
         else
         {

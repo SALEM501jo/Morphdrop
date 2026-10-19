@@ -29,6 +29,19 @@ internal sealed class ActionRunner
         if (inputs.Length == 0)
             return null;
 
+        // Several images dropped on PDF make one file: run once with all of them.
+        if (action is ICombiningAction combining && combining.Combines(inputs))
+            return Start(action, inputs, new[] { inputs[0] }, _ => combining.RunAll(inputs));
+
+        return Start(action, inputs, inputs, action.Run);
+    }
+
+    /// <summary>Runs work prepared elsewhere (an editor's save) with the same notifications as a dropped action.</summary>
+    public Task RunJob(IFileAction action, string input, Func<string> job) =>
+        Start(action, new[] { input }, new[] { input }, _ => job());
+
+    private Task Start(IFileAction action, string[] inputs, string[] steps, Func<string, string> run)
+    {
         SynchronizationContext? caller = SynchronizationContext.Current;
         void Report(Action raise)
         {
@@ -48,28 +61,24 @@ internal sealed class ActionRunner
             var outputs = new List<(string, string)>();
             var skipped = new List<(string, string)>();
             var errors = new List<(string, Exception)>();
-
-            // Several images dropped on PDF make one file: run once with all of them.
-            bool combine = action is ICombiningAction combining && combining.Combines(inputs);
-            foreach (string input in combine ? inputs.Take(1) : inputs)
+            foreach (string input in steps)
             {
+                string what = steps.Length < inputs.Length ? $"{inputs.Length} files" : $"'{input}'";
                 try
                 {
-                    string output = combine ? ((ICombiningAction)action).RunAll(inputs) : action.Run(input);
+                    string output = run(input);
                     outputs.Add((input, output));
-                    Log.Info(combine
-                        ? $"{action.Description}: {inputs.Length} files -> '{output}'"
-                        : $"{action.Description}: '{input}' -> '{output}'");
+                    Log.Info($"{action.Description}: {what} -> '{output}'");
                 }
                 catch (NothingToDoException nothing)
                 {
                     skipped.Add((input, nothing.Message));
-                    Log.Info($"{action.Description}: nothing to do for '{input}': {nothing.Message}");
+                    Log.Info($"{action.Description}: nothing to do for {what}: {nothing.Message}");
                 }
                 catch (Exception ex)
                 {
                     errors.Add((input, ex));
-                    Log.Error($"{action.Description} failed for '{input}'", ex);
+                    Log.Error($"{action.Description} failed for {what}", ex);
                 }
             }
 
