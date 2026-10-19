@@ -67,6 +67,94 @@ public sealed class ImageToolsTests : IDisposable
     }
 
     [Fact]
+    public void CompressingAPhoneQualityJpeg_RoughlyHalvesIt()
+    {
+        // Phones save at quality ~92-96, where re-saving at 80 is invisible but much smaller.
+        string jpg = MagickImages.Photo(InFolder("phone.jpg"), 1600, 1200, quality: 96);
+
+        string output = ImageTools.Compress(jpg);
+
+        Assert.True(new FileInfo(output).Length < new FileInfo(jpg).Length * 0.7);
+        using var compressed = new MagickImage(output);
+        Assert.InRange(compressed.Quality, 78u, 82u);
+    }
+
+    [Fact]
+    public void CompressingALowQualityJpeg_DoesNotLowerItFurther()
+    {
+        string jpg = MagickImages.Photo(InFolder("low.jpg"), 1600, 1200, quality: 70);
+
+        try
+        {
+            using var compressed = new MagickImage(ImageTools.Compress(jpg));
+            Assert.Equal(70u, compressed.Quality); // optimized losslessly: same quantization tables
+        }
+        catch (NothingToDoException)
+        {
+            // Also fine: nothing worth saving.
+        }
+    }
+
+    [Fact]
+    public void CompressingASidewaysPhoto_KeepsItsOrientationAndMetadata()
+    {
+        string jpg = MagickImages.Photo(InFolder("sideways.jpg"), 1200, 900, quality: 96, image =>
+        {
+            var exif = new ExifProfile();
+            exif.SetValue(ExifTag.Orientation, (ushort)6);
+            exif.SetValue(ExifTag.Model, "Phone 15");
+            image.SetProfile(exif);
+            image.Orientation = OrientationType.RightTop;
+        });
+
+        using var compressed = new MagickImage(ImageTools.Compress(jpg));
+
+        Assert.Equal((1200u, 900u), (compressed.Width, compressed.Height)); // pixels not rotated…
+        Assert.Equal(OrientationType.RightTop, compressed.Orientation); // …because the tag still turns them
+        Assert.Equal("Phone 15", compressed.GetExifProfile()?.GetValue(ExifTag.Model)?.Value);
+    }
+
+    [Fact]
+    public void PngOutputs_CarryNoChunksImageMagickMadeUp()
+    {
+        string png = MagickImages.Gradient(InFolder("plain.png"), 600, 400, MagickFormat.Png, image =>
+        {
+            image.Settings.SetDefine(MagickFormat.Png, "compression-level", 0);
+            image.Settings.SetDefine(MagickFormat.Png, "exclude-chunk", "all");
+        });
+        string jpg = MagickImages.Photo(InFolder("photo.jpg"), 600, 400, quality: 90);
+
+        string[] outputs =
+        {
+            ImageTools.Compress(png),
+            ImageTools.Resize(png, ResizeMode.Half),
+            ImageConverter.Convert(jpg, ImageFormat.Png),
+        };
+
+        Assert.All(PngChunks.TypesIn(png), type => Assert.True(char.IsUpper(type[0]), $"{type} in the source")); // critical chunks only
+        foreach (string output in outputs)
+        {
+            HashSet<string> chunks = PngChunks.TypesIn(output);
+            Assert.DoesNotContain("tIME", chunks);
+            Assert.DoesNotContain("orNT", chunks);
+            Assert.DoesNotContain("bKGD", chunks);
+            Assert.DoesNotContain("cHRM", chunks);
+            Assert.DoesNotContain("date:", System.Text.Encoding.Latin1.GetString(File.ReadAllBytes(output)));
+        }
+
+        Assert.True(MagickImages.SamePixels(png, outputs[0]));
+    }
+
+    [Fact]
+    public void ChunksTheOriginalHad_AreKept()
+    {
+        string png = MagickImages.Gradient(InFolder("with-chromaticity.png"), 200, 100, MagickFormat.Png);
+        Assert.Contains("cHRM", PngChunks.TypesIn(png));
+
+        Assert.Contains("cHRM", PngChunks.TypesIn(ImageTools.Resize(png, ResizeMode.Half)));
+    }
+
+    [Fact]
     public void CompressingTwice_FindsNothingMoreToDo()
     {
         string jpg = MagickImages.Gradient(InFolder("big.jpg"), 1200, 900, MagickFormat.Jpeg, image => image.Quality = 100);

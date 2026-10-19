@@ -46,6 +46,6 @@ internal static class IcoWriter
         entry.Alpha(AlphaOption.Set);
         entry.Resize(new MagickGeometry(size, size));
         entry.Extent(size, size, Gravity.Center, MagickColors.Transparent);
-        return entry.ToByteArray(MagickFormat.Png32);
+        return PngMetadata.RemoveWriterChunks(entry.ToByteArray(MagickFormat.Png32), sourceChunks: null);
     }
 }

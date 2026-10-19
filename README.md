@@ -16,12 +16,15 @@ on an action in the wheel that appears. The new file lands next to the original.
   PSD, with no codec extensions to install.
   - Photos are turned upright using their EXIF orientation. Transparent areas become white in formats without
     transparency (JPG, BMP).
-  - Animated GIF and WebP stay animated between those two formats. A multi-page TIFF becomes a multi-page PDF.
+  - Animations (GIF, WebP and animated PNG) stay animated when converted to GIF or WebP. A multi-page TIFF
+    becomes a multi-page PDF.
+  - PNGs ShiftDrop writes carry no metadata the original didn't have (no timestamps or tool-specific chunks).
   - PDF pages come out about A4-sized, at the image's full resolution.
   - ICO files hold every standard size (16–256 px) without scaling small images up.
 - **Tools**:
-  - **Compress**: JPEG is optimized losslessly, or re-saved at quality 80 when that saves clearly more. PNG and GIF
-    are optimized losslessly; WebP is re-encoded.
+  - **Compress**: a JPEG saved above quality 80 (phones use about 92–96) is re-saved at 80, often halving it;
+    otherwise it is optimized losslessly. PNG and GIF are optimized losslessly; WebP is re-encoded. Animated PNGs
+    are left alone rather than losing their animation (convert them to WebP instead).
   - **50%** and **Max 1920** (fit within 1920 × 1920 px), keeping the format and the animation.
   - **Clean** removes location, camera details, comments and other metadata from JPEG and PNG *without
     re-encoding*: the image data is copied byte for byte, and the orientation is kept so photos don't turn sideways.

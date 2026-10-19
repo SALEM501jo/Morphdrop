@@ -13,6 +13,17 @@ internal static class MagickImages
         return path;
     }
 
+    /// <summary>Blurred plasma: compresses like a real photo, unlike a smooth gradient.</summary>
+    public static string Photo(string path, uint width, uint height, uint quality, Action<MagickImage>? configure = null)
+    {
+        using var image = new MagickImage("plasma:#e8a87c-#41729f", width, height);
+        image.Blur(0, 1.2);
+        image.Quality = quality;
+        configure?.Invoke(image);
+        image.Write(path, MagickFormat.Jpeg);
+        return path;
+    }
+
     /// <summary>ImageMagick's built-in 640x480 logo: a detailed, deterministic picture.</summary>
     public static string Logo(string path, MagickFormat format, Action<MagickImage>? configure = null)
     {

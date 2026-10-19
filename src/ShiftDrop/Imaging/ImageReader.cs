@@ -16,6 +16,9 @@ internal static class ImageReader
     /// </summary>
     public static MagickImageCollection Read(string path, ImageFormat format, bool allFrames)
     {
+        if (allFrames && format.Kind == ImageKind.Png && ApngReader.IsAnimated(path))
+            return ApngReader.Read(File.ReadAllBytes(path));
+
         var settings = new MagickReadSettings { Format = format.MagickFormat };
         if (!allFrames)
         {

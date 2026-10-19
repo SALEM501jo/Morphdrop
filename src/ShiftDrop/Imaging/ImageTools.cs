@@ -20,6 +20,9 @@ internal static class ImageTools
     public static string Resize(string inputPath, ResizeMode mode)
     {
         ImageFormat source = ImageReader.Identify(inputPath);
+        if (source.Kind == ImageKind.Png && ApngReader.IsAnimated(inputPath))
+            throw new NothingToDoException("Animated PNGs can't be resized yet (it would stop the animation). Convert it to GIF or WebP first.");
+
         using MagickImageCollection images = ImageReader.Read(inputPath, source, allFrames: source.SupportsAnimation);
         if (images.Count > 1)
             images.Coalesce();
@@ -41,21 +44,28 @@ internal static class ImageTools
         string extension = target == source ? Path.GetExtension(inputPath) : target.Extension;
         bool lossless = source.Kind == ImageKind.WebP && WebPIsLossless(inputPath);
         string suffix = mode == ResizeMode.Half ? "50%" : $"{FullHd}px";
-        return OutputFile.Save(inputPath, suffix, extension, output => ImageWriter.Write(images, source, target, output, lossless));
+        IReadOnlySet<string>? sourceChunks = source.Kind == ImageKind.Png ? PngChunks.TypesIn(inputPath) : null;
+        return OutputFile.Save(inputPath, suffix, extension,
+            output => ImageWriter.Write(images, source, target, output, lossless, sourceChunks));
     }
 
     /// <summary>
-    /// JPEG: lossless optimization, or quality 80 when that saves clearly more. PNG and GIF: lossless only.
-    /// WebP: re-encoded at quality 75 (lossless files stay lossless).
+    /// JPEG: lossless optimization, or quality 80 when the photo was saved above that and it saves clearly more.
+    /// PNG and GIF: lossless only. WebP: re-encoded at quality 75 (lossless files stay lossless).
     /// </summary>
     public static string Compress(string inputPath)
     {
         ImageFormat source = ImageReader.Identify(inputPath);
+        if (source.Kind == ImageKind.Png && ApngReader.IsAnimated(inputPath))
+            throw new NothingToDoException("Animated PNGs can't be compressed yet (it would stop the animation). Convert it to WebP for a much smaller animation.");
+
         byte[] original = File.ReadAllBytes(inputPath);
         byte[] smallest = source.Kind switch
         {
             ImageKind.Jpeg => CompressJpeg(original),
-            ImageKind.Png => Optimize(new PngOptimizer { OptimalCompression = true }, original),
+            ImageKind.Png => PngMetadata.RemoveWriterChunks(
+                Optimize(new PngOptimizer { OptimalCompression = true }, original),
+                PngChunks.Parse(original).Select(chunk => chunk.Type).ToHashSet()),
             ImageKind.Gif => Optimize(new GifOptimizer(), original),
             ImageKind.WebP => ReencodeWebP(original),
             _ => throw new NothingToDoException($"{source.Name} files can't be compressed yet."),
@@ -86,11 +96,17 @@ internal static class ImageTools
     {
         byte[] lossless = Optimize(new JpegOptimizer { OptimalCompression = true, Progressive = true }, original);
 
-        using var stream = new MemoryStream();
-        stream.Write(original);
-        stream.Position = 0;
-        new JpegOptimizer { OptimalCompression = true, Progressive = true }.Compress(stream, CompressedJpegQuality);
-        byte[] lossy = stream.ToArray();
+        // Re-saving only helps a JPEG saved above the target quality (phones use ~92-96); below it, it just adds
+        // artifacts. JpegOptimizer.Compress barely lowers the quality, so the photo is re-encoded directly; the
+        // pixels and their EXIF orientation are left as they are, and metadata is kept.
+        using var image = new MagickImage(original, new MagickReadSettings { Format = MagickFormat.Jpeg });
+        if (image.Quality <= CompressedJpegQuality)
+            return lossless;
+
+        image.Quality = CompressedJpegQuality;
+        image.Settings.Interlace = Interlace.Jpeg; // progressive: slightly smaller, and shows early while loading
+        image.Settings.SetDefine(MagickFormat.Jpeg, "optimize-coding", true);
+        byte[] lossy = Optimize(new JpegOptimizer { OptimalCompression = true, Progressive = true }, image.ToByteArray(MagickFormat.Jpeg));
 
         // Only give up quality for a real gain over the lossless result.
         return lossy.Length < lossless.Length * 0.9 ? lossy : lossless;

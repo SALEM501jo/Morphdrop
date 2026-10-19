@@ -65,7 +65,14 @@ internal sealed class ImageFormat
 
     public bool SupportsTransparency { get; }
 
+    /// <summary>Animations can be read and written (GIF, WebP).</summary>
     public bool SupportsAnimation { get; }
+
+    /// <summary>
+    /// Animations can at least be read: also PNG, whose animated form (APNG) <see cref="ApngReader"/> decodes.
+    /// ImageMagick can't write APNG without FFmpeg, so a PNG is always written as a still image.
+    /// </summary>
+    public bool ReadsAnimation => SupportsAnimation || Kind == ImageKind.Png;
 
     /// <summary>Extension of the files ShiftDrop writes, with the dot.</summary>
     public string Extension => _extensions[0];

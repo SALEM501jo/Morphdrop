@@ -10,6 +10,8 @@ internal static class ImageConverter
     {
         ImageFormat source = ImageReader.Identify(inputPath);
         using MagickImageCollection images = ImageReader.Read(inputPath, source, ImageWriter.NeedsAllFrames(source, target));
-        return OutputFile.Save(inputPath, suffix: null, target.Extension, output => ImageWriter.Write(images, source, target, output));
+        IReadOnlySet<string>? sourceChunks = source.Kind == ImageKind.Png ? PngChunks.TypesIn(inputPath) : null;
+        return OutputFile.Save(inputPath, suffix: null, target.Extension,
+            output => ImageWriter.Write(images, source, target, output, sourcePngChunks: sourceChunks));
     }
 }

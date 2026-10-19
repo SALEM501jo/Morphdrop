@@ -18,7 +18,25 @@ internal static class ImageWriter
     public static bool NeedsAllFrames(ImageFormat source, ImageFormat target) =>
         source.Kind == ImageKind.Ico || KeepsFrames(source, target);
 
-    public static void Write(MagickImageCollection images, ImageFormat source, ImageFormat target, Stream output, bool lossless = false)
+    /// <param name="sourcePngChunks">
+    /// The chunk types of the original file when it is a PNG, so a PNG written here keeps no more metadata than it had.
+    /// </param>
+    public static void Write(
+        MagickImageCollection images, ImageFormat source, ImageFormat target, Stream output,
+        bool lossless = false, IReadOnlySet<string>? sourcePngChunks = null)
+    {
+        if (target.Kind == ImageKind.Png)
+        {
+            using var buffer = new MemoryStream();
+            WriteImages(images, source, target, buffer, lossless);
+            output.Write(PngMetadata.RemoveWriterChunks(buffer.ToArray(), sourcePngChunks));
+            return;
+        }
+
+        WriteImages(images, source, target, output, lossless);
+    }
+
+    private static void WriteImages(MagickImageCollection images, ImageFormat source, ImageFormat target, Stream output, bool lossless)
     {
         if (target.Kind == ImageKind.Ico)
         {
@@ -28,7 +46,7 @@ internal static class ImageWriter
 
         if (images.Count > 1 && KeepsFrames(source, target))
         {
-            if (source.SupportsAnimation)
+            if (source.ReadsAnimation)
                 images.Coalesce();
             foreach (IMagickImage<byte> frame in images)
                 Prepare(frame, source, target, lossless);
@@ -83,7 +101,7 @@ internal static class ImageWriter
     }
 
     private static bool KeepsFrames(ImageFormat source, ImageFormat target) =>
-        (source.SupportsAnimation && target.SupportsAnimation)
+        (source.ReadsAnimation && target.SupportsAnimation)
         || (source.Kind == ImageKind.Tiff && target.Kind == ImageKind.Pdf);
 
     /// <summary>Picks a resolution that makes the page about A4-sized while keeping every pixel.</summary>

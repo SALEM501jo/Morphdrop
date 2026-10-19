@@ -1,17 +1,11 @@
-using System.Buffers.Binary;
 using System.Text;
 
 namespace ShiftDrop.Imaging;
 
-/// <summary>
-/// Removes metadata chunks from a PNG without re-encoding it: text (tEXt, zTXt, iTXt, which often hold software,
-/// author or AI-prompt details), EXIF, timestamps and any unknown ancillary chunk. Chunks that change how the
-/// image looks or animates stay, and the image data is copied byte for byte.
-/// </summary>
+/// <summary>Chunk-level PNG cleanup. The image data is always copied byte for byte.</summary>
 internal static class PngMetadata
 {
-    private static readonly byte[] Signature = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
-
+    // Ancillary chunks that change how the image looks or animates; any other ancillary chunk is metadata.
     private static readonly HashSet<string> KeptAncillaryChunks = new(StringComparer.Ordinal)
     {
         "tRNS", "gAMA", "cHRM", "sRGB", "iCCP", "sBIT", "pHYs", "bKGD", "hIST", "sPLT", // appearance
@@ -19,35 +13,60 @@ internal static class PngMetadata
         "cICP", "mDCv", "cLLi", // HDR
     };
 
-    public static (byte[] Data, bool Removed) Remove(byte[] png)
+    // Chunks ImageMagick adds to every PNG it writes: a background hint, chromaticities, a modification time and
+    // its private orientation chunk. They're kept only when the original image already had them.
+    private static readonly HashSet<string> WriterChunks = new(StringComparer.Ordinal) { "bKGD", "cHRM", "tIME", "orNT" };
+
+    /// <summary>
+    /// Removes text (tEXt, zTXt, iTXt: often software, author or AI-prompt details), EXIF, timestamps and unknown
+    /// ancillary chunks. Chunks that change how the image looks or animates stay.
+    /// </summary>
+    public static (byte[] Data, bool Removed) Remove(byte[] png) =>
+        Filter(png, chunk => char.IsUpper(chunk[0]) || KeptAncillaryChunks.Contains(chunk));
+
+    /// <summary>
+    /// Removes what ImageMagick adds on its own when writing a PNG (see <see cref="WriterChunks"/>, plus its
+    /// "date:create"-style text), so a converted or compressed file carries no more metadata than its source.
+    /// </summary>
+    /// <param name="sourceChunks">The chunk types of the original PNG, or null when the source wasn't a PNG.</param>
+    public static byte[] RemoveWriterChunks(byte[] png, IReadOnlySet<string>? sourceChunks)
     {
-        if (!png.AsSpan().StartsWith(Signature))
-            throw new InvalidDataException("This isn't a PNG file.");
-
-        using var output = new MemoryStream(png.Length);
-        output.Write(Signature);
-        bool removed = false;
-        int position = Signature.Length;
-
-        while (position + 12 <= png.Length)
+        string? textKeyword = null;
+        return Filter(png, (type, data) =>
         {
-            uint length = BinaryPrimitives.ReadUInt32BigEndian(png.AsSpan(position));
-            if (length > png.Length - position - 12)
-                break;
+            if (WriterChunks.Contains(type))
+                return sourceChunks?.Contains(type) == true;
+            if (type is "tEXt" or "zTXt" or "iTXt")
+            {
+                textKeyword = Encoding.Latin1.GetString(data[..Math.Max(0, data.IndexOf((byte)0))]);
+                return !textKeyword.StartsWith("date:", StringComparison.Ordinal);
+            }
 
-            string type = Encoding.ASCII.GetString(png, position + 4, 4);
-            int chunkSize = 12 + (int)length; // length, type, data, CRC
-            bool critical = char.IsUpper(type[0]); // IHDR, PLTE, IDAT, IEND and any future critical chunk
-            if (critical || KeptAncillaryChunks.Contains(type))
-                output.Write(png, position, chunkSize);
+            return true;
+        }).Data;
+    }
+
+    private static (byte[] Data, bool Removed) Filter(byte[] png, Func<string, bool> keep) =>
+        Filter(png, (type, _) => keep(type));
+
+    private static (byte[] Data, bool Removed) Filter(byte[] png, KeepChunk keep)
+    {
+        List<PngChunks.Chunk> chunks = PngChunks.Parse(png);
+        using var output = new MemoryStream(png.Length);
+        output.Write(PngChunks.Signature);
+        bool removed = false;
+        foreach (PngChunks.Chunk chunk in chunks)
+        {
+            if (keep(chunk.Type, png.AsSpan(chunk.Offset, chunk.Length)))
+                output.Write(png, chunk.Start, chunk.TotalSize);
             else
                 removed = true;
-
-            position += chunkSize;
-            if (type == "IEND")
-                return (output.ToArray(), removed || position < png.Length);
         }
 
-        throw new InvalidDataException("The PNG file is damaged.");
+        PngChunks.Chunk last = chunks[^1];
+        removed |= last.Start + last.TotalSize < png.Length; // data after IEND
+        return (output.ToArray(), removed);
     }
+
+    private delegate bool KeepChunk(string type, ReadOnlySpan<byte> data);
 }
