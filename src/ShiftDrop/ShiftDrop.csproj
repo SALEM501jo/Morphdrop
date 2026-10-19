@@ -11,6 +11,8 @@
     <!-- Only for the notification-area icon (NotifyIcon). WinForms namespaces are not imported globally. -->
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Drawn by Branding/Logo.cs; regenerate it by running ShiftDrop.exe with the render-logo switch. -->
+    <ApplicationIcon>Assets\ShiftDrop.ico</ApplicationIcon>
     <RootNamespace>ShiftDrop</RootNamespace>
     <Version>0.6.0</Version>
     <!-- WFAC010 / WFO0003 ask WinForms apps to set DPI mode in code; this is a WPF app, which takes it from app.manifest. -->
@@ -22,6 +24,10 @@
     <Using Remove="System.Drawing" />
     <!-- WPF leaves System.IO out because of System.Windows.Shapes.Path; code here aliases Shapes instead. -->
     <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\ShiftDrop.ico" LogicalName="ShiftDrop.ico" />
   </ItemGroup>
 
   <ItemGroup>

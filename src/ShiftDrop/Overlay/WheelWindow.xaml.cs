@@ -261,13 +261,7 @@ internal partial class WheelWindow : Window
     }
 
     /// <summary>"System" follows Windows' app mode, read on each opening so a change applies right away.</summary>
-    private bool UseDarkTheme() => Theme switch
-    {
-        Settings.ThemeChoice.Dark => true,
-        Settings.ThemeChoice.Light => false,
-        _ => Microsoft.Win32.Registry.GetValue(
-            @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1) is 0,
-    };
+    private bool UseDarkTheme() => Settings.AppTheme.Resolve(Theme);
 
     private void FadeOut()
     {

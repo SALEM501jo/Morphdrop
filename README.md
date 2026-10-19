@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.png" width="112" alt="ShiftDrop logo: a wheel with its top slice lit and a drop arrow in the middle"></p>
+
 # ShiftDrop
 
 Convert and shrink files on Windows without opening an app: start dragging a file, press **Shift**, and drop it

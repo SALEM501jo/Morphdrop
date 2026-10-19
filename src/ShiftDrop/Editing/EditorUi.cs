@@ -27,13 +27,12 @@ internal static class EditorUi
         return button;
     }
 
-    public static TextBlock Label(string text) => new()
+    public static TextBlock Label(string text)
     {
-        Text = text,
-        Foreground = Frozen(Color.FromRgb(0x66, 0x66, 0x66)),
-        VerticalAlignment = VerticalAlignment.Center,
-        Margin = new Thickness(0, 0, 8, 0),
-    };
+        var label = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+        label.SetResourceReference(TextBlock.ForegroundProperty, "Theme.SubtleText");
+        return label;
+    }
 
     public static StackPanel Row(params UIElement[] children)
     {

@@ -40,6 +40,9 @@ internal static class ConfirmDialog
                 },
             },
         };
+        Settings.AppTheme.Attach(window);
+        yesButton.SetResourceReference(FrameworkElement.StyleProperty, "AccentButton");
+        noButton.SetResourceReference(FrameworkElement.StyleProperty, "ActionButton");
         yesButton.Click += (_, _) => window.DialogResult = true;
         window.Loaded += (_, _) => window.Activate();
         return window.ShowDialog() == true;

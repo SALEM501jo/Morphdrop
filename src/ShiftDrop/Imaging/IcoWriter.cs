@@ -15,14 +15,19 @@ internal static class IcoWriter
         uint largest = Math.Max(image.Width, image.Height);
         int[] sizes = StandardSizes.Where(size => size <= largest).DefaultIfEmpty(StandardSizes[0]).ToArray();
         byte[][] entries = sizes.Select(size => RenderEntry(image, (uint)size)).ToArray();
+        WriteEntries(sizes, entries, output);
+    }
 
+    /// <summary>Writes the .ico container around PNG images that are already square (sizes[i] × sizes[i]).</summary>
+    public static void WriteEntries(IReadOnlyList<int> sizes, IReadOnlyList<byte[]> entries, Stream output)
+    {
         using var writer = new BinaryWriter(output, System.Text.Encoding.UTF8, leaveOpen: true);
         writer.Write((ushort)0); // reserved
         writer.Write((ushort)1); // type: icon
-        writer.Write((ushort)entries.Length);
+        writer.Write((ushort)entries.Count);
 
-        int offset = 6 + 16 * entries.Length;
-        for (int i = 0; i < entries.Length; i++)
+        int offset = 6 + 16 * entries.Count;
+        for (int i = 0; i < entries.Count; i++)
         {
             byte dimension = (byte)(sizes[i] >= 256 ? 0 : sizes[i]); // 0 means 256
             writer.Write(dimension); // width

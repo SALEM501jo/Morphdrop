@@ -47,6 +47,7 @@ internal partial class EditorWindow : Window
         _path = path;
         _runner = runner;
         InitializeComponent();
+        Settings.AppTheme.Attach(this);
         Title = $"{action.Label} – {Path.GetFileName(path)}";
 
         CancelButton.Click += (_, _) => Close();

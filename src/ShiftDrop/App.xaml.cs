@@ -24,6 +24,13 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        if (e.Args is ["--render-logo", var logoFolder])
+        {
+            Branding.Logo.WriteAssets(logoFolder);
+            Shutdown();
+            return;
+        }
+
         if (e.Args is ["--render-wheel", var previewPath])
         {
             WheelPreview.Render(previewPath);
@@ -128,12 +135,14 @@ public partial class App : Application
             tray.SetTriggerName(name);
             wheel.EnabledPages = current.EnabledPages;
             wheel.Theme = current.Theme;
+            AppTheme.Use(current.Theme);
             Imaging.ImageWriter.Preset = current.Quality;
             OutputFile.Folder = current.OutputFolder;
             tray.OnlyNotifyProblems = current.Notifications == NotificationLevel.ErrorsOnly;
             _triggerName = name;
         }
 
+        AppTheme.StartFollowingWindows();
         Apply(settings.Current);
         settings.Changed += changed =>
         {

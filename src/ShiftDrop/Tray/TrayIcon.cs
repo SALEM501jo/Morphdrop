@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using ShiftDrop.Actions;
-using ShiftDrop.Interop;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
 
@@ -9,8 +8,6 @@ namespace ShiftDrop.Tray;
 /// <summary>The notification-area icon, ShiftDrop's only permanent UI.</summary>
 internal sealed class TrayIcon : IDisposable
 {
-    private static readonly Drawing.Color Accent = Drawing.Color.FromArgb(255, 95, 58);
-
     private readonly Forms.NotifyIcon _notifyIcon;
     private readonly Forms.ContextMenuStrip _menu;
     private readonly Drawing.Icon _icon;
@@ -154,32 +151,11 @@ internal sealed class TrayIcon : IDisposable
 
     private static string Truncate(string text, int length) => text.Length <= length ? text : text[..(length - 1)] + "…";
 
-    /// <summary>Four arcs around a dot: a tiny version of the wheel.</summary>
+    /// <summary>The logo from the embedded .ico, at the size Windows asks for (each size is drawn for it).</summary>
     private static Drawing.Icon CreateIcon(int size)
     {
-        using var bitmap = new Drawing.Bitmap(size, size, Drawing.Imaging.PixelFormat.Format32bppArgb);
-        using (var graphics = Drawing.Graphics.FromImage(bitmap))
-        using (var pen = new Drawing.Pen(Accent, size * 0.18f))
-        using (var brush = new Drawing.SolidBrush(Accent))
-        {
-            graphics.SmoothingMode = Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            float inset = size * 0.14f;
-            var ring = new Drawing.RectangleF(inset, inset, size - 2 * inset, size - 2 * inset);
-            for (int i = 0; i < 4; i++)
-                graphics.DrawArc(pen, ring, -90 - 32 + i * 90, 64);
-
-            float dot = size * 0.26f;
-            graphics.FillEllipse(brush, (size - dot) / 2, (size - dot) / 2, dot, dot);
-        }
-
-        IntPtr handle = bitmap.GetHicon();
-        try
-        {
-            return (Drawing.Icon)Drawing.Icon.FromHandle(handle).Clone();
-        }
-        finally
-        {
-            NativeMethods.DestroyIcon(handle);
-        }
+        using Stream stream = typeof(TrayIcon).Assembly.GetManifestResourceStream("ShiftDrop.ico")
+            ?? throw new InvalidOperationException("The ShiftDrop.ico resource is missing.");
+        return new Drawing.Icon(stream, new Drawing.Size(size, size));
     }
 }

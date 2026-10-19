@@ -28,7 +28,7 @@ internal sealed class SettingsWindow : Window
         SizeToContent = SizeToContent.Height;
         ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        Background = EditorUi.Frozen(Color.FromRgb(0xF3, 0xF3, 0xF3));
+        AppTheme.Attach(this);
         FontFamily = new FontFamily("Segoe UI");
         FontSize = 13;
 
@@ -109,7 +109,11 @@ internal sealed class SettingsWindow : Window
         section.Children.Add(new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, FontSize = 14, Margin = new Thickness(0, 0, 0, 6) });
         section.Children.Add(content);
         if (note is not null)
-            section.Children.Add(new TextBlock { Text = note, Foreground = EditorUi.Frozen(Color.FromRgb(0x70, 0x70, 0x70)), FontSize = 12, Margin = new Thickness(0, 6, 0, 0) });
+        {
+            var text = new TextBlock { Text = note, FontSize = 12, Margin = new Thickness(0, 6, 0, 0) };
+            text.SetResourceReference(TextBlock.ForegroundProperty, "Theme.SubtleText");
+            section.Children.Add(text);
+        }
         return section;
     }
 
