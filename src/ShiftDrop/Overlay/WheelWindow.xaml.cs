@@ -180,7 +180,8 @@ internal partial class WheelWindow : Window
             else
             {
                 string[] files = _files;
-                Dispatcher.BeginInvoke(() => _run(action, files)); // may ask a question first, so not inside the drop
+                // May ask a question first, so not inside the drop, and only once the wheel has faded away.
+                Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => _run(action, files));
             }
         }
         else

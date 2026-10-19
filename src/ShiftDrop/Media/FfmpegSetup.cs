@@ -1,4 +1,3 @@
-using System.Windows;
 using ShiftDrop.Tray;
 
 namespace ShiftDrop.Media;
@@ -25,12 +24,12 @@ internal sealed class FfmpegSetup
 
         if (_installing is null)
         {
-            MessageBoxResult answer = MessageBox.Show(
+            bool download = ConfirmDialog.Ask(
                 $"Video and audio need FFmpeg, a free tool that ShiftDrop downloads once (about {Ffmpeg.DownloadSize / 1_000_000} MB, " +
                 $"FFmpeg {Ffmpeg.Version} from github.com/GyanD/codexffmpeg). It is checked against a known fingerprint before use.\n\n" +
                 "Download it now?",
-                "ShiftDrop", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes, MessageBoxOptions.DefaultDesktopOnly);
-            if (answer != MessageBoxResult.Yes)
+                "Download", "Not now");
+            if (!download)
                 return;
             _installing = InstallAsync();
         }
