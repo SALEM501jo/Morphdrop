@@ -90,6 +90,8 @@ internal sealed class TrayIcon : IDisposable
     {
         try
         {
+            if (Directory.Exists(output))
+                return $"{Directory.GetFiles(output).Length} pages. ";
             return $"{ByteSize.Format(new FileInfo(input).Length)} → {ByteSize.Format(new FileInfo(output).Length)}. ";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

@@ -5,8 +5,8 @@ on an action in the wheel that appears. The new file lands next to the original.
 
 <p align="center"><img src="docs/wheel.png" width="720" alt="The two pages of the ShiftDrop wheel: Convert and Tools"></p>
 
-> **Status: early prototype (v0.2).** Images work: conversion between nine formats, compression, resizing and
-> metadata removal. Documents, video and audio are on the roadmap below.
+> **Status: early prototype (v0.3).** Images work (conversion between nine formats, compression, resizing,
+> metadata removal), and PDFs turn into images and back. Video and audio are on the roadmap below.
 
 ## What works today
 
@@ -28,6 +28,12 @@ on an action in the wheel that appears. The new file lands next to the original.
   - **50%** and **Max 1920** (fit within 1920 × 1920 px), keeping the format and the animation.
   - **Clean** removes location, camera details, comments and other metadata from JPEG and PNG *without
     re-encoding*: the image data is copied byte for byte, and the orientation is kept so photos don't turn sideways.
+- **PDF**:
+  - Drop a PDF on PNG, JPG or WebP to save every page as an image (200 DPI). A one-page PDF gives `name.png`;
+    a longer one a folder `name (pages)` with `page 01.png`, `page 02.png`… Rendered by the PDF engine built into
+    Windows, so nothing extra is installed.
+  - Drag several images onto PDF to get **one PDF** with a page per image, in File Explorer's name order
+    (`scan 2` before `scan 10`), saved as `first name (N pages).pdf`.
 - **Never overwrites anything**: results are named `photo (compressed).jpg`, `photo (1).png` and so on.
 - Drop on the hub (centre) or drag away to cancel. Drag a few files at once to process them all.
 
@@ -67,7 +73,7 @@ Developer switches:
 
 1. ~~Gesture, wheel and built-in image conversion~~ (v0.1)
 2. ~~WebP / AVIF / HEIC, compress, resize, remove metadata~~ (v0.2)
-3. PDF ↔ images, editing tools (crop, add background, redact)
+3. ~~PDF ↔ images~~ (v0.3); next: editing tools (crop, add background, redact)
 4. Video and audio (FFmpeg, downloaded on first use)
 5. Settings: start with Windows, choose the modifier key, light/dark theme
 6. Installer, winget and signed releases

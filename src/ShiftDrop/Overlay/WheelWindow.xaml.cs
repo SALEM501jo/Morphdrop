@@ -226,7 +226,9 @@ internal partial class WheelWindow : Window
         Wheel.Highlight(index);
         Wheel.SetHub(_hubTitle, index switch
         {
-            >= 0 => Actions[index].Description,
+            >= 0 => Actions[index] is ICombiningAction combining && combining.Combines(_files)
+                ? combining.CombinedDescription(_files.Length)
+                : Actions[index].Description,
             WheelGeometry.HubIndex when Actions.Count > 0 => "Release here to cancel",
             _ => _hubSubtitle,
         });

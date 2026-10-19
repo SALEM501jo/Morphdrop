@@ -53,6 +53,21 @@ internal static class OutputFile
         throw new IOException($"No free file name for {baseName}{extension} in {directory}.");
     }
 
+    /// <summary>Creates "name (suffix)" next to <paramref name="inputPath"/>, or "name (suffix) (1)"… if taken.</summary>
+    public static string CreateUniqueFolder(string inputPath, string suffix)
+    {
+        string directory = Path.GetDirectoryName(Path.GetFullPath(inputPath))!;
+        string baseName = $"{Path.GetFileNameWithoutExtension(inputPath)} ({suffix})";
+        for (int copy = 0; copy < 10_000; copy++)
+        {
+            string path = Path.Combine(directory, copy == 0 ? baseName : $"{baseName} ({copy})");
+            if (!File.Exists(path) && !Directory.Exists(path))
+                return Directory.CreateDirectory(path).FullName;
+        }
+
+        throw new IOException($"No free folder name for {baseName} in {directory}.");
+    }
+
     private static void TryDelete(string path)
     {
         try

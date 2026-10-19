@@ -48,13 +48,18 @@ internal sealed class ActionRunner
             var outputs = new List<(string, string)>();
             var skipped = new List<(string, string)>();
             var errors = new List<(string, Exception)>();
-            foreach (string input in inputs)
+
+            // Several images dropped on PDF make one file: run once with all of them.
+            bool combine = action is ICombiningAction combining && combining.Combines(inputs);
+            foreach (string input in combine ? inputs.Take(1) : inputs)
             {
                 try
                 {
-                    string output = action.Run(input);
+                    string output = combine ? ((ICombiningAction)action).RunAll(inputs) : action.Run(input);
                     outputs.Add((input, output));
-                    Log.Info($"{action.Description}: '{input}' -> '{output}'");
+                    Log.Info(combine
+                        ? $"{action.Description}: {inputs.Length} files -> '{output}'"
+                        : $"{action.Description}: '{input}' -> '{output}'");
                 }
                 catch (NothingToDoException nothing)
                 {

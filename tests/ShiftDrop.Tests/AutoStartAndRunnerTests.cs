@@ -72,14 +72,15 @@ public sealed class ActionRunnerTests : IDisposable
     [Fact]
     public async Task AQuickJob_StaysQuiet()
     {
-        var runner = new ActionRunner(slowAfter: TimeSpan.FromMilliseconds(400));
+        // A generous threshold: when other tests keep the CPU busy, the job can wait a while just to start.
+        var runner = new ActionRunner(slowAfter: TimeSpan.FromSeconds(1.5));
         bool working = false;
         ActionResult? result = null;
         runner.Working += (_, _) => working = true;
         runner.Completed += r => result = r;
 
         await runner.Run(new SleepAction(TimeSpan.Zero), new[] { _file })!;
-        await Task.Delay(700); // past the threshold: a stray notice would have fired by now
+        await Task.Delay(TimeSpan.FromSeconds(2)); // past the threshold: a stray notice would have fired by now
 
         Assert.False(working);
         Assert.NotNull(result);

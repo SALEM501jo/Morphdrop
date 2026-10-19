@@ -14,7 +14,9 @@ internal static class ActionCatalog
     private const string PrivacyGlyph = "";
 
     private static readonly IFileAction[] ConvertActions =
-        ImageFormat.WheelTargets.Select(format => (IFileAction)new ConvertImageAction(format)).ToArray();
+        ImageFormat.WheelTargets.Select(format => (IFileAction)new ConvertImageAction(format))
+            .Concat(new[] { ImageFormat.Png, ImageFormat.Jpeg, ImageFormat.WebP }.Select(format => new PdfToImagesAction(format)))
+            .ToArray();
 
     private static readonly IFileAction[] ToolActions =
     {

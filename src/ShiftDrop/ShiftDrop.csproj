@@ -2,7 +2,9 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <!-- The Windows 10 SDK target brings the WinRT APIs, e.g. Windows.Data.Pdf for rendering PDF pages. -->
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
@@ -10,7 +12,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <RootNamespace>ShiftDrop</RootNamespace>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <!-- WFAC010 / WFO0003 ask WinForms apps to set DPI mode in code; this is a WPF app, which takes it from app.manifest. -->
     <NoWarn>$(NoWarn);WFAC010;WFO0003</NoWarn>
   </PropertyGroup>

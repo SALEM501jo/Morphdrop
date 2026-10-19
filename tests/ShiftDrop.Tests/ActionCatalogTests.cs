@@ -53,6 +53,5 @@ public sealed class ActionCatalogTests : IDisposable
 
         Assert.Empty(ActionCatalog.For(new[] { text }));
         Assert.Empty(ActionCatalog.For(new[] { _folder }));
-        Assert.Empty(ActionCatalog.ForFileName("report.pdf")); // PDFs can be written, not read (yet)
     }
 }
