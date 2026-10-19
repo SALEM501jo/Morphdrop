@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Morphdrop.Tests" />
+    <InternalsVisibleTo Include="Morphdrop.Demo" />
   </ItemGroup>
 
   <ItemGroup>

@@ -5,12 +5,14 @@
 Convert and shrink files on Windows without opening an app: start dragging a file, press **Shift**, and drop it
 on an action in the wheel that appears. The new file lands next to the original.
 
-<p align="center"><img src="docs/wheel.png" width="840" alt="The three pages of the Morphdrop wheel, Convert, Tools and Edit, in the light and dark themes"></p>
+<p align="center"><img src="docs/demo.gif" width="520" alt="Demo: a photo is dragged, Shift opens the wheel, it becomes a WebP; Shift again compresses it; the editors crop it, put it on a background and redact an invoice; then Word to PDF, video to GIF and WAV to MP3"></p>
 
 > **Status: v1.0.** Images (conversion between nine formats, compression, resizing, metadata
 > removal, cropping, backgrounds, redaction), PDFs (to images and back), and video and audio all work.
 
 ## What works today
+
+<p align="center"><img src="docs/wheel.png" width="840" alt="The three pages of the Morphdrop wheel, Convert, Tools and Edit, in the light and dark themes"></p>
 
 - **Drag + Shift** anywhere a file can be dragged (File Explorer, the desktop) opens the wheel under the cursor.
   **Press Shift again** to turn to the next page.
@@ -115,6 +117,11 @@ Developer switches:
 `scripts/release.ps1` runs the tests, publishes a self-contained build (users don't need .NET) and packs it with
 [Velopack](https://velopack.io) into `artifacts\releases`: the installer, a portable zip and the update packages.
 Pushing a tag such as `v1.0.1` makes the *Release* workflow do the same on GitHub and publish a release.
+
+The demo videos and `docs/demo.gif` are rendered by `tools/Morphdrop.Demo` from the app's own wheel, editors and
+logo (no screen recording): `dotnet run --project tools/Morphdrop.Demo` writes a 1080×1920 and a 1080×1080 MP4 to
+`artifacts\demo`. It needs FFmpeg (Morphdrop's own copy is found, or set `MORPHDROP_FFMPEG`); `--stills=1,5.5`
+renders PNG frames instead.
 
 ## Roadmap
 1. ~~Gesture, wheel and built-in image conversion~~ (v0.1)
