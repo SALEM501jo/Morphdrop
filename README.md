@@ -46,7 +46,7 @@ ShiftDrop always answers drops with *Copy*, never *Move*, so the source never de
 
 ## Build and run
 
-Requirements: Windows 10 or 11 and the [.NET 8 SDK](https://dotnet.microsoft.com/download).
+Requirements: Windows 10 or 11 and the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 ```bash
 dotnet build
