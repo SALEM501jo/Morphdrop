@@ -2,6 +2,7 @@
 using ImageMagick;
 using ShiftDrop.Actions;
 using ShiftDrop.Editing;
+using ShiftDrop.Media;
 using ShiftDrop.Input;
 using ShiftDrop.Overlay;
 using ShiftDrop.Tray;
@@ -64,12 +65,25 @@ public partial class App : Application
         Log.Info($"ShiftDrop {typeof(App).Assembly.GetName().Version?.ToString(3)} starting (pid {Environment.ProcessId})");
 
         var runner = new ActionRunner();
-        var wheel = new WheelWindow(runner, (action, path) => EditorWindow.Open(action, path, runner));
+        FfmpegSetup? ffmpegSetup = null; // created with the tray icon below; the wheel only needs it once files are dropped
+        var wheel = new WheelWindow(
+            runner,
+            (action, path) => EditorWindow.Open(action, path, runner),
+            (action, files) =>
+            {
+                if (action is MediaAction)
+                    ffmpegSetup?.RunWhenReady(() => runner.Run(action, files));
+                else
+                    runner.Run(action, files);
+            });
         wheel.Prewarm();
 
         var autoStart = new AutoStart(Environment.ProcessPath!);
         var tray = new TrayIcon(autoStart.IsEnabled);
         _tray = tray;
+        ffmpegSetup = new FfmpegSetup(tray);
+        FfmpegRunner.ProgressChanged += (description, share) =>
+            Dispatcher.InvokeAsync(() => tray.SetStatus(share >= 1 ? null : $"{description}: {share:P0}"));
         runner.Working += tray.ShowWorking;
         runner.Completed += tray.ShowResult;
         tray.ExitRequested += () => Shutdown();

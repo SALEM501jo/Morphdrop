@@ -51,6 +51,9 @@ internal sealed class TrayIcon : IDisposable
 
     public event Action? ExitRequested;
 
+    /// <summary>A short status in the icon's tooltip (e.g. progress), or null for the plain name.</summary>
+    public void SetStatus(string? status) => _notifyIcon.Text = status is null ? "ShiftDrop" : Truncate($"ShiftDrop – {status}", 127);
+
     /// <summary>Shown when a job is still running after a moment; the result notification replaces it.</summary>
     public void ShowWorking(IFileAction action, IReadOnlyList<string> inputs)
     {

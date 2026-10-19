@@ -1,4 +1,5 @@
 using ShiftDrop.Imaging;
+using ShiftDrop.Media;
 
 namespace ShiftDrop.Actions;
 
@@ -19,9 +20,10 @@ internal static class ActionCatalog
     private static readonly IFileAction[] ConvertActions =
         ImageFormat.WheelTargets.Select(format => (IFileAction)new ConvertImageAction(format))
             .Concat(new[] { ImageFormat.Png, ImageFormat.Jpeg, ImageFormat.WebP }.Select(format => new PdfToImagesAction(format)))
+            .Concat(MediaAction.ConvertActions())
             .ToArray();
 
-    private static readonly IFileAction[] ToolActions =
+    private static readonly IFileAction[] ToolActions = new IFileAction[]
     {
         new ImageToolAction("Compress", CompressGlyph, "Make it smaller",
             format => format.Kind is ImageKind.Jpeg or ImageKind.Png or ImageKind.WebP or ImageKind.Gif,
@@ -33,7 +35,7 @@ internal static class ActionCatalog
         new ImageToolAction("Clean", PrivacyGlyph, "Remove location & camera info",
             format => format.Kind is ImageKind.Jpeg or ImageKind.Png,
             ImageTools.RemoveMetadata),
-    };
+    }.Concat(MediaAction.ToolActions(CompressGlyph)).ToArray();
 
     private static readonly IFileAction[] EditActions =
     {

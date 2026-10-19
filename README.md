@@ -5,9 +5,8 @@ on an action in the wheel that appears. The new file lands next to the original.
 
 <p align="center"><img src="docs/wheel.png" width="840" alt="The three pages of the ShiftDrop wheel: Convert, Tools and Edit"></p>
 
-> **Status: early prototype (v0.4).** Images work (conversion between nine formats, compression, resizing,
-> metadata removal, cropping, backgrounds, redaction), and PDFs turn into images and back. Video and audio are on
-> the roadmap below.
+> **Status: early prototype (v0.5).** Images (conversion between nine formats, compression, resizing, metadata
+> removal, cropping, backgrounds, redaction), PDFs (to images and back), and video and audio all work.
 
 ## What works today
 
@@ -37,6 +36,14 @@ on an action in the wheel that appears. The new file lands next to the original.
   - **Redact**: drag boxes over anything private; they become black boxes or coarse pixels. EXIF (which can hold an
     unredacted thumbnail and the location) is removed too.
   - Enter saves a copy, Esc cancels, Ctrl+Z undoes the last redaction box.
+- **Video and audio** (needs FFmpeg; ShiftDrop offers to download it the first time, 115 MB, checked against a
+  pinned SHA-256):
+  - Convert video to **MP4** (H.264), **GIF** (15 fps, at most 640 px wide, with a palette made for the clip) or
+    **animated WebP**; save the sound as **MP3** or **M4A**. GIFs convert to MP4 too, which is far smaller.
+  - Audio between **MP3, M4A, WAV and FLAC**.
+  - Tools: **Compress** (H.264, fitted within 1920 px, kept only if clearly smaller), **720p**, and **Mute**
+    (removes the sound without re-encoding the picture).
+  - The tray icon's tooltip shows how far a long job has got.
 - **PDF**:
   - Drop a PDF on PNG, JPG or WebP to save every page as an image (200 DPI). A one-page PDF gives `name.png`;
     a longer one a folder `name (pages)` with `page 01.png`, `page 02.png`… Rendered by the PDF engine built into
@@ -77,13 +84,14 @@ Developer switches:
 
 - `ShiftDrop.exe --render-wheel wheel.png` renders the wheel's pages to an image without showing any window.
 - `ShiftDrop.exe --exit` closes a running instance (useful before rebuilding).
+- Video and audio tests need FFmpeg: set `SHIFTDROP_FFMPEG` to an `ffmpeg.exe` (otherwise they're skipped).
 
 ## Roadmap
 
 1. ~~Gesture, wheel and built-in image conversion~~ (v0.1)
 2. ~~WebP / AVIF / HEIC, compress, resize, remove metadata~~ (v0.2)
 3. ~~PDF ↔ images~~ (v0.3), ~~editing tools: crop, background, redact~~ (v0.4)
-4. Video and audio (FFmpeg, downloaded on first use)
+4. ~~Video and audio (FFmpeg, downloaded on first use)~~ (v0.5)
 5. Settings: start with Windows, choose the modifier key, light/dark theme
 6. Installer, winget and signed releases
 
@@ -93,6 +101,9 @@ Developer switches:
 - Files dragged out of ZIP folders or phones (virtual files) aren't supported yet.
 
 ## Third-party software
+
+- [FFmpeg](https://ffmpeg.org) is not part of ShiftDrop; on first use it downloads the
+  [gyan.dev essentials build](https://www.gyan.dev/ffmpeg/builds/) (GPL) into `%LOCALAPPDATA%\ShiftDrop\ffmpeg`.
 
 - [Magick.NET](https://github.com/dlemstra/Magick.NET) (Apache 2.0), which bundles
   [ImageMagick](https://imagemagick.org/script/license.php) and its codec libraries (libheif, libwebp, libaom,

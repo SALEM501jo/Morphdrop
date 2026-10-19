@@ -24,6 +24,7 @@ internal partial class WheelWindow : Window
 
     private readonly ActionRunner _runner;
     private readonly Action<EditAction, string> _openEditor;
+    private readonly Action<IFileAction, string[]> _run;
     private readonly DropTargetHelper _dropHelper = new();
     private readonly DispatcherTimer _hideTimer;
     private readonly IntPtr _hwnd;
@@ -36,10 +37,12 @@ internal partial class WheelWindow : Window
     private string _hubSubtitle = "";
 
     /// <param name="openEditor">Opens an Edit page tool for a file; called after the drop has completed.</param>
-    public WheelWindow(ActionRunner runner, Action<EditAction, string> openEditor)
+    /// <param name="run">Runs a dropped action (the app makes sure FFmpeg is there for video and audio).</param>
+    public WheelWindow(ActionRunner runner, Action<EditAction, string> openEditor, Action<IFileAction, string[]> run)
     {
         _runner = runner;
         _openEditor = openEditor;
+        _run = run;
         InitializeComponent();
 
         _hideTimer = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher);
@@ -176,7 +179,8 @@ internal partial class WheelWindow : Window
             }
             else
             {
-                _runner.Run(action, _files);
+                string[] files = _files;
+                Dispatcher.BeginInvoke(() => _run(action, files)); // may ask a question first, so not inside the drop
             }
         }
         else
