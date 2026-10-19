@@ -20,6 +20,7 @@ internal sealed class DemoAssets
         Folder = folder;
         Sunset = Path.Combine(folder, "sunset.jpg");
         Invoice = Path.Combine(folder, "invoice.png");
+        Scans = Enumerable.Range(1, 3).Select(page => Path.Combine(folder, $"scan {page}.jpg")).ToArray();
         Report = Path.Combine(folder, "report.docx");
         ReportPdf = Path.Combine(folder, "report.pdf");
         Clip = Path.Combine(folder, "clip.mov");
@@ -48,6 +49,11 @@ internal sealed class DemoAssets
     public Rect ContactArea { get; private set; }
 
     public Rect CardArea { get; private set; }
+
+    /// <summary>Three scanned pages, combined into one PDF by Morphdrop.</summary>
+    public string[] Scans { get; }
+
+    public string ScansPdf { get; private set; } = "";
 
     public string Report { get; }
 
@@ -96,6 +102,10 @@ internal sealed class DemoAssets
 
             assets.InvoiceRedacted = redact.PrepareSave()();
         }
+
+        for (int i = 0; i < assets.Scans.Length; i++)
+            Painter.Scan(assets.Scans[i], i + 1);
+        assets.ScansPdf = new ConvertImageAction(ImageFormat.Pdf).RunAll(assets.Scans);
 
         // Typical sizes, so the hub reads like it would for real files.
         Placeholder(assets.Report, 845_312);
@@ -200,6 +210,57 @@ internal static class Painter
 
         figure.Segments.Add(new LineSegment(new Point(w, bottom * h), false));
         dc.DrawGeometry(new SolidColorBrush(color), null, new PathGeometry(new[] { figure }));
+    }
+
+    /// <summary>A photographed page of notes: off-white paper, a heading, lines of "text" and a chart.</summary>
+    public static void Scan(string path, int page)
+    {
+        const int width = 1240, height = 1754;
+        var visual = new DrawingVisual();
+        var random = new Random(page * 31);
+        var ink = new SolidColorBrush(Color.FromRgb(0x3A, 0x3D, 0x4A));
+        var faint = new SolidColorBrush(Color.FromRgb(0xB9, 0xBC, 0xC6));
+        using (DrawingContext dc = visual.RenderOpen())
+        {
+            dc.DrawRectangle(new LinearGradientBrush(Color.FromRgb(0xFB, 0xF9, 0xF3), Color.FromRgb(0xEE, 0xEB, 0xE2), 60), null, new Rect(0, 0, width, height));
+            Text(dc, $"Project notes · page {page}", 44, 110, 120, bold: true);
+            dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0xFF, 0x65, 0x40)), null, new Rect(110, 196, 160, 8));
+            double y = 270;
+            for (int block = 0; block < 4; block++)
+            {
+                if (block == page % 4)
+                {
+                    // A chart on each page, in a different place.
+                    dc.DrawRoundedRectangle(null, new Pen(faint, 4), new Rect(110, y, 1020, 300), 12, 12);
+                    for (int bar = 0; bar < 6; bar++)
+                    {
+                        double barHeight = 60 + random.NextDouble() * 190;
+                        dc.DrawRectangle(bar % 2 == 0 ? ink : faint, null, new Rect(170 + bar * 150, y + 270 - barHeight, 90, barHeight));
+                    }
+
+                    y += 360;
+                    continue;
+                }
+
+                for (int line = 0; line < 5; line++)
+                {
+                    double length = line == 4 ? 300 + random.NextDouble() * 400 : 880 + random.NextDouble() * 140;
+                    dc.DrawRoundedRectangle(line == 0 ? ink : faint, null, new Rect(110, y, length, 16), 8, 8);
+                    y += 42;
+                }
+
+                y += 46;
+            }
+
+            Text(dc, $"{page}", 26, 620, 1660, gray: true, center: true);
+        }
+
+        var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+        var encoder = new JpegBitmapEncoder { QualityLevel = 88 };
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using FileStream file = File.Create(path);
+        encoder.Save(file);
     }
 
     /// <summary>A made-up invoice for the Redact scene. Returns the contact lines' and card line's areas.</summary>

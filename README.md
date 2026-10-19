@@ -5,7 +5,7 @@
 Convert and shrink files on Windows without opening an app: start dragging a file, press **Shift**, and drop it
 on an action in the wheel that appears. The new file lands next to the original.
 
-<p align="center"><img src="docs/demo.gif" width="520" alt="Demo: a photo is dragged, Shift opens the wheel, it becomes a WebP; Shift again compresses it; the editors crop it, put it on a background and redact an invoice; then Word to PDF, video to GIF and WAV to MP3"></p>
+<p align="center"><img src="docs/demo.gif" width="520" alt="Demo: a photo is dragged, Shift opens the wheel, it becomes a WebP; Shift again compresses it; the editors crop it, put it on a background and redact an invoice; three scans become one PDF; then Word to PDF, video to GIF and WAV to MP3"></p>
 
 > **Status: v1.0.** Images (conversion between nine formats, compression, resizing, metadata
 > removal, cropping, backgrounds, redaction), PDFs (to images and back), and video and audio all work.

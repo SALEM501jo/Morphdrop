@@ -72,6 +72,13 @@ internal static class Script
                 Caption = "Hide private details",
                 Subcaption = "Black boxes or pixelate. Location data goes too.",
             },
+            new WheelScene(a.Scans[0], "PDF", page: 0, fast: false)
+            {
+                Caption = "Many images → one PDF",
+                Subcaption = "Drag them together, drop on PDF: a page each, in order",
+                Together = a.Scans.Skip(1).ToArray(),
+                Result = a.ScansPdf,
+            },
             new WheelScene(a.Report, "PDF", page: 0, fast: true) { Caption = media, Subcaption = mediaSub, Result = a.ReportPdf },
             new WheelScene(a.Clip, "GIF", page: 0, fast: true) { Caption = media, Subcaption = mediaSub, Result = a.ClipGif },
             new WheelScene(a.Song, "MP3", page: 0, fast: true) { Caption = media, Subcaption = mediaSub, Result = a.SongMp3 },
@@ -200,9 +207,9 @@ internal class WheelScene : Scene
     private readonly double _moveEnd;
 
     private WheelView _wheel = null!;
-    private DesktopFile _source = null!;
+    private readonly List<DesktopFile> _dragged = new();
     private DesktopFile? _result;
-    private Image _ghost = null!;
+    private FrameworkElement _ghost = null!;
     private KeyCap _keyCap = null!;
     private Toast? _toast;
     private int _shownPage = -1;
@@ -233,6 +240,9 @@ internal class WheelScene : Scene
 
     public string[] Others { get; init; } = Array.Empty<string>();
 
+    /// <summary>More files dragged together with the first one (they're already selected).</summary>
+    public string[] Together { get; init; } = Array.Empty<string>();
+
     public string? Result { get; init; }
 
     public (string Title, string Body)? Toast { get; init; }
@@ -250,18 +260,24 @@ internal class WheelScene : Scene
     protected override FrameworkElement Build(Size size)
     {
         Stage = new Canvas { Width = size.Width, Height = size.Height };
-        _source = new DesktopFile(_file);
-        _source.PlaceAt(Stage, 0);
+        string[] dragged = Files;
+        for (int i = 0; i < dragged.Length; i++)
+        {
+            var file = new DesktopFile(dragged[i]);
+            file.PlaceAt(Stage, i);
+            _dragged.Add(file);
+        }
+
         for (int i = 0; i < Others.Length; i++)
-            new DesktopFile(Others[i]).PlaceAt(Stage, i + 1);
+            new DesktopFile(Others[i]).PlaceAt(Stage, dragged.Length + i);
         if (Result is not null)
         {
             _result = new DesktopFile(Result);
-            _result.PlaceAt(Stage, Others.Length + 1);
+            _result.PlaceAt(Stage, dragged.Length + Others.Length);
             _result.Pop(0);
         }
 
-        _ghost = new Image { Source = _source.Icon, Width = 72, Height = 72, Opacity = 0 };
+        _ghost = Ghost();
         Stage.Children.Add(_ghost);
 
         var center = new Point(size.Width / 2 + 40, size.Height / 2);
@@ -296,6 +312,44 @@ internal class WheelScene : Scene
         return Stage;
     }
 
+    private string[] Files => Together.Prepend(_file).ToArray();
+
+    /// <summary>What Explorer drags along: the icon, or a little stack with a count for several files.</summary>
+    private FrameworkElement Ghost()
+    {
+        var ghost = new Grid { Width = 84, Height = 84, Opacity = 0 };
+        for (int i = Math.Min(_dragged.Count, 3) - 1; i >= 0; i--)
+        {
+            ghost.Children.Add(new Image
+            {
+                Source = _dragged[i].Icon,
+                Width = 64,
+                Height = 64,
+                Margin = new Thickness(i * 7, i * 7, 0, 0),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+            });
+        }
+
+        if (_dragged.Count > 1)
+        {
+            ghost.Children.Add(new Border
+            {
+                Width = 24,
+                Height = 24,
+                CornerRadius = new CornerRadius(12),
+                Background = Visuals.Frozen(Color.FromRgb(0x00, 0x67, 0xC0)),
+                BorderBrush = Brushes.White,
+                BorderThickness = new Thickness(1.5),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Child = new TextBlock { Text = $"{_dragged.Count}", FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+            });
+        }
+
+        return ghost;
+    }
+
     protected virtual Point CursorAt(double t)
     {
         if (!_fast && t < _grab)
@@ -311,8 +365,9 @@ internal class WheelScene : Scene
         Visuals.Move(Pointer, cursor);
 
         bool dragging = t >= _grab && t < Release;
-        _source.Selected = t >= _grab;
-        _ghost.Opacity = dragging && t >= _grab + 0.06 ? 0.6 : 0;
+        for (int i = 0; i < _dragged.Count; i++)
+            _dragged[i].Selected = t >= _grab || i > 0;
+        _ghost.Opacity = dragging && t >= _grab + 0.06 ? 0.7 : 0;
         Visuals.Move(_ghost, new Point(cursor.X - 36, cursor.Y - 32));
 
         double open = _presses[0];
@@ -340,11 +395,15 @@ internal class WheelScene : Scene
             IReadOnlyList<IFileAction> actions = _pages[page].Actions;
             int index = WheelGeometry.HitTest(new Point(cursor.X - _wheelOrigin.X, cursor.Y - _wheelOrigin.Y), actions.Count);
             _wheel.Highlight(index);
-            _wheel.SetHub(ByteSize.Format(new FileInfo(_file).Length), index switch
+            // The same wording as WheelWindow.
+            string[] files = Files;
+            _wheel.SetHub(files.Length > 1 ? $"{files.Length} items" : ByteSize.Format(new FileInfo(_file).Length), index switch
             {
-                >= 0 => actions[index].Description,
+                >= 0 => actions[index] is ICombiningAction combining && combining.Combines(files)
+                    ? combining.CombinedDescription(files.Length)
+                    : actions[index].Description,
                 WheelGeometry.HubIndex => "Release here to cancel",
-                _ => Path.GetFileName(_file),
+                _ => files.Length > 1 ? "Drop on an action" : Path.GetFileName(_file),
             });
         }
 
