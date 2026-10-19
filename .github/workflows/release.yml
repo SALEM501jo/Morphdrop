@@ -1,7 +1,7 @@
 name: Release
 
 # Push a tag like v1.0.1 to build the installer and publish it as a GitHub release.
-# Installed copies of ShiftDrop find the new version through "Check for updates" in Settings.
+# Installed copies of Morphdrop find the new version through "Check for updates" in Settings.
 on:
   push:
     tags: ['v*']
@@ -43,5 +43,5 @@ jobs:
           --token ${{ secrets.GITHUB_TOKEN }}
           --outputDir artifacts/releases
           --tag ${{ github.ref_name }}
-          --releaseName "ShiftDrop ${{ steps.version.outputs.value }}"
+          --releaseName "Morphdrop ${{ steps.version.outputs.value }}"
           --publish

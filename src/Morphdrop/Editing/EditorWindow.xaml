@@ -1,0 +1,24 @@
+<Window x:Class="Morphdrop.Editing.EditorWindow"
+        x:ClassModifier="internal"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Morphdrop" Width="1080" Height="760" MinWidth="760" MinHeight="540"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI" FontSize="13">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource Theme.Panel}" BorderBrush="{DynamicResource Theme.PanelBorder}" BorderThickness="0,1,0,0" Padding="20,12">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                    <Button x:Name="CancelButton" Content="Cancel" Style="{StaticResource ActionButton}" Margin="0,0,8,0" IsCancel="True" />
+                    <Button x:Name="SaveButton" Content="Save copy" Style="{StaticResource AccentButton}" IsDefault="True" IsEnabled="False" />
+                </StackPanel>
+                <ContentControl x:Name="OptionsHost" VerticalAlignment="Center" Focusable="False" />
+            </DockPanel>
+        </Border>
+        <Grid Margin="24">
+            <TextBlock x:Name="Status" Text="Opening…" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Theme.SubtleText}" FontSize="15" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="560" />
+            <ContentControl x:Name="EditorHost" Focusable="False" />
+        </Grid>
+    </DockPanel>
+</Window>

@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
-    Builds a ShiftDrop release: tests, a self-contained publish, and a Velopack installer.
+    Builds a Morphdrop release: tests, a self-contained publish, and a Velopack installer.
 
 .DESCRIPTION
-    Output goes to artifacts\releases: ShiftDropApp-win-Setup.exe (the installer), a portable zip, and the
+    Output goes to artifacts\releases: MorphdropApp-win-Setup.exe (the installer), a portable zip, and the
     update packages that Velopack serves from GitHub Releases. Users need neither .NET nor admin rights.
 
 .EXAMPLE
-    ./scripts/release.ps1                 # version from src/ShiftDrop/ShiftDrop.csproj
+    ./scripts/release.ps1                 # version from src/Morphdrop/Morphdrop.csproj
     ./scripts/release.ps1 -Version 1.0.1
 #>
 param(
@@ -20,9 +20,9 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
 if (-not $Version) {
-    $Version = ([xml](Get-Content src/ShiftDrop/ShiftDrop.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+    $Version = ([xml](Get-Content src/Morphdrop/Morphdrop.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
 }
-Write-Host "Building ShiftDrop $Version" -ForegroundColor Cyan
+Write-Host "Building Morphdrop $Version" -ForegroundColor Cyan
 
 $publish = Join-Path $root 'artifacts/publish'
 $releases = Join-Path $root 'artifacts/releases'
@@ -34,7 +34,7 @@ if (-not $SkipTests) {
 }
 
 # Self-contained, so users don't need to install .NET. Only the x64 native libraries are kept.
-dotnet publish src/ShiftDrop/ShiftDrop.csproj -c Release -r win-x64 --self-contained `
+dotnet publish src/Morphdrop/Morphdrop.csproj -c Release -r win-x64 --self-contained `
     -p:Version=$Version -o $publish --nologo
 if ($LASTEXITCODE) { throw 'Publish failed.' }
 
@@ -44,16 +44,16 @@ $temp = Join-Path $root 'artifacts/tmp'
 New-Item -ItemType Directory -Force $temp | Out-Null
 $env:TEMP = $temp
 $env:TMP = $temp
-# The pack id is also the install folder (%LOCALAPPDATA%\ShiftDropApp), which Velopack deletes on uninstall.
-# It must differ from %LOCALAPPDATA%\ShiftDrop, where settings, the log and the downloaded FFmpeg live.
+# The pack id is also the install folder (%LOCALAPPDATA%\MorphdropApp), which Velopack deletes on uninstall.
+# It must differ from %LOCALAPPDATA%\Morphdrop, where settings, the log and the downloaded FFmpeg live.
 dotnet vpk pack `
-    --packId ShiftDropApp `
+    --packId MorphdropApp `
     --packVersion $Version `
-    --packTitle ShiftDrop `
+    --packTitle Morphdrop `
     --packAuthors Salem `
     --packDir $publish `
-    --mainExe ShiftDrop.exe `
-    --icon src/ShiftDrop/Assets/ShiftDrop.ico `
+    --mainExe Morphdrop.exe `
+    --icon src/Morphdrop/Assets/Morphdrop.ico `
     --outputDir $releases
 if ($LASTEXITCODE) { throw 'Packing failed.' }
 

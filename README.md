@@ -1,11 +1,11 @@
-<p align="center"><img src="docs/logo.png" width="112" alt="ShiftDrop logo: a wheel with its top slice lit and a drop arrow in the middle"></p>
+<p align="center"><img src="docs/logo.png" width="112" alt="Morphdrop logo: a wheel with its top slice lit and a drop arrow in the middle"></p>
 
-# ShiftDrop
+# Morphdrop
 
 Convert and shrink files on Windows without opening an app: start dragging a file, press **Shift**, and drop it
 on an action in the wheel that appears. The new file lands next to the original.
 
-<p align="center"><img src="docs/wheel.png" width="840" alt="The three pages of the ShiftDrop wheel, Convert, Tools and Edit, in the light and dark themes"></p>
+<p align="center"><img src="docs/wheel.png" width="840" alt="The three pages of the Morphdrop wheel, Convert, Tools and Edit, in the light and dark themes"></p>
 
 > **Status: v1.0.** Images (conversion between nine formats, compression, resizing, metadata
 > removal, cropping, backgrounds, redaction), PDFs (to images and back), and video and audio all work.
@@ -20,7 +20,7 @@ on an action in the wheel that appears. The new file lands next to the original.
     transparency (JPG, BMP).
   - Animations (GIF, WebP and animated PNG) stay animated when converted to GIF or WebP. A multi-page TIFF
     becomes a multi-page PDF.
-  - PNGs ShiftDrop writes carry no metadata the original didn't have (no timestamps or tool-specific chunks).
+  - PNGs Morphdrop writes carry no metadata the original didn't have (no timestamps or tool-specific chunks).
   - PDF pages come out about A4-sized, at the image's full resolution.
   - ICO files hold every standard size (16–256 px) without scaling small images up.
 - **Tools**:
@@ -38,7 +38,7 @@ on an action in the wheel that appears. The new file lands next to the original.
   - **Redact**: drag boxes over anything private; they become black boxes or coarse pixels. EXIF (which can hold an
     unredacted thumbnail and the location) is removed too.
   - Enter saves a copy, Esc cancels, Ctrl+Z undoes the last redaction box.
-- **Video and audio** (needs FFmpeg; ShiftDrop offers to download it the first time, 115 MB, checked against a
+- **Video and audio** (needs FFmpeg; Morphdrop offers to download it the first time, 115 MB, checked against a
   pinned SHA-256):
   - Convert video to **MP4** (H.264), **GIF** (15 fps, at most 640 px wide, with a palette made for the clip) or
     **animated WebP**; save the sound as **MP3** or **M4A**. GIFs convert to MP4 too, which is far smaller.
@@ -61,19 +61,19 @@ HEIC can be read but not written: the HEVC encoder (x265) is GPL-licensed, so Ma
 
 | Piece | What it does |
 | --- | --- |
-| [`Input/DragWatcher`](src/ShiftDrop/Input/DragWatcher.cs) | A low-level mouse hook on its own thread notices "button held + moved past the drag threshold", then watches for Shift presses. Shift held *before* the drag keeps Explorer's native meaning (force move). |
-| [`Overlay/WheelWindow`](src/ShiftDrop/Overlay/WheelWindow.xaml.cs) | A topmost, non-activating, layered WPF window that is an OLE drop target. It appears under the cursor as an invisible "ghost" and only shows itself when the drag really enters it carrying files, so text selection or window moves never show it. |
-| [`Actions/`](src/ShiftDrop/Actions) | What each slice does (`IFileAction`), grouped into pages and chosen from the first file's type, run in the background. |
-| [`Imaging/`](src/ShiftDrop/Imaging) | [Magick.NET](https://github.com/dlemstra/Magick.NET) for decoding and encoding, plus a small ICO writer and byte-level JPEG/PNG metadata removal. Files are identified by their first bytes, so only decoders on ShiftDrop's list ever see them. |
+| [`Input/DragWatcher`](src/Morphdrop/Input/DragWatcher.cs) | A low-level mouse hook on its own thread notices "button held + moved past the drag threshold", then watches for Shift presses. Shift held *before* the drag keeps Explorer's native meaning (force move). |
+| [`Overlay/WheelWindow`](src/Morphdrop/Overlay/WheelWindow.xaml.cs) | A topmost, non-activating, layered WPF window that is an OLE drop target. It appears under the cursor as an invisible "ghost" and only shows itself when the drag really enters it carrying files, so text selection or window moves never show it. |
+| [`Actions/`](src/Morphdrop/Actions) | What each slice does (`IFileAction`), grouped into pages and chosen from the first file's type, run in the background. |
+| [`Imaging/`](src/Morphdrop/Imaging) | [Magick.NET](https://github.com/dlemstra/Magick.NET) for decoding and encoding, plus a small ICO writer and byte-level JPEG/PNG metadata removal. Files are identified by their first bytes, so only decoders on Morphdrop's list ever see them. |
 
-ShiftDrop always answers drops with *Copy*, never *Move*, so the source never deletes your original.
+Morphdrop always answers drops with *Copy*, never *Move*, so the source never deletes your original.
 
 ## Install
 
-Download **ShiftDropApp-win-Setup.exe** from [Releases](https://github.com/SALEM501jo/ShiftDrop/releases) and run it.
-It installs for your user only (no admin rights) into `%LOCALAPPDATA%\ShiftDropApp`, adds Start menu and desktop
-shortcuts, and starts ShiftDrop. Updates: **Settings → Check for updates**. Uninstall from Windows' *Installed apps*;
-your settings and the downloaded FFmpeg stay in `%LOCALAPPDATA%\ShiftDrop`.
+Download **MorphdropApp-win-Setup.exe** from [Releases](https://github.com/SALEM501jo/Morphdrop/releases) and run it.
+It installs for your user only (no admin rights) into `%LOCALAPPDATA%\MorphdropApp`, adds Start menu and desktop
+shortcuts, and starts Morphdrop. Updates: **Settings → Check for updates**. Uninstall from Windows' *Installed apps*;
+your settings and the downloaded FFmpeg stay in `%LOCALAPPDATA%\Morphdrop`.
 
 > The installer isn't code-signed yet, so Windows SmartScreen may warn about an unknown publisher: choose
 > *More info → Run anyway*.
@@ -84,10 +84,10 @@ Requirements: Windows 10 or 11 and the [.NET 10 SDK](https://dotnet.microsoft.co
 ```bash
 dotnet build
 dotnet test
-dotnet run --project src/ShiftDrop
+dotnet run --project src/Morphdrop
 ```
 
-ShiftDrop lives in the notification area (tray). Double-click its icon (or right-click → **Settings…**) to choose:
+Morphdrop lives in the notification area (tray). Double-click its icon (or right-click → **Settings…**) to choose:
 
 - the **key** that opens the wheel: Shift, Ctrl or Alt
 - which **pages** the wheel shows (Convert, Tools, Edit)
@@ -97,15 +97,15 @@ ShiftDrop lives in the notification area (tray). Double-click its icon (or right
 - **notifications** for every result, or only problems
 - **Start with Windows**
 
-Changes apply right away and are kept in `%LOCALAPPDATA%\ShiftDrop\settings.json`. The tray menu can also pause ShiftDrop,
+Changes apply right away and are kept in `%LOCALAPPDATA%\Morphdrop\settings.json`. The tray menu can also pause Morphdrop,
 open the log, or exit. Jobs that take more than a moment show a "Working…" notification.
-The log is at `%LOCALAPPDATA%\ShiftDrop\shiftdrop.log`.
+The log is at `%LOCALAPPDATA%\Morphdrop\morphdrop.log`.
 
 Developer switches:
 
-- `ShiftDrop.exe --render-wheel wheel.png` renders the wheel's pages to an image without showing any window.
-- `ShiftDrop.exe --exit` closes a running instance (useful before rebuilding).
-- Video and audio tests need FFmpeg: set `SHIFTDROP_FFMPEG` to an `ffmpeg.exe` (otherwise they're skipped).
+- `Morphdrop.exe --render-wheel wheel.png` renders the wheel's pages to an image without showing any window.
+- `Morphdrop.exe --exit` closes a running instance (useful before rebuilding).
+- Video and audio tests need FFmpeg: set `MORPHDROP_FFMPEG` to an `ffmpeg.exe` (otherwise they're skipped).
 
 ## Releasing
 
@@ -129,8 +129,8 @@ Pushing a tag such as `v1.0.1` makes the *Release* workflow do the same on GitHu
 
 ## Third-party software
 
-- [FFmpeg](https://ffmpeg.org) is not part of ShiftDrop; on first use it downloads the
-  [gyan.dev essentials build](https://www.gyan.dev/ffmpeg/builds/) (GPL) into `%LOCALAPPDATA%\ShiftDrop\ffmpeg`.
+- [FFmpeg](https://ffmpeg.org) is not part of Morphdrop; on first use it downloads the
+  [gyan.dev essentials build](https://www.gyan.dev/ffmpeg/builds/) (GPL) into `%LOCALAPPDATA%\Morphdrop\ffmpeg`.
 
 - [Magick.NET](https://github.com/dlemstra/Magick.NET) (Apache 2.0), which bundles
   [ImageMagick](https://imagemagick.org/script/license.php) and its codec libraries (libheif, libwebp, libaom,

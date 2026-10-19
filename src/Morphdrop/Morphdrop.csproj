@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <!-- The Windows 10 SDK target brings the WinRT APIs, e.g. Windows.Data.Pdf for rendering PDF pages. -->
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- Only for the notification-area icon (NotifyIcon). WinForms namespaces are not imported globally. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Drawn by Branding/Logo.cs; regenerate it by running Morphdrop.exe with the render-logo switch. -->
+    <ApplicationIcon>Assets\Morphdrop.ico</ApplicationIcon>
+    <RootNamespace>Morphdrop</RootNamespace>
+    <Version>1.0.0</Version>
+    <!-- Morphdrop's UI is English: don't ship .NET's translated error messages (13 folders). -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- WFAC010 / WFO0003 ask WinForms apps to set DPI mode in code; this is a WPF app, which takes it from app.manifest. -->
+    <NoWarn>$(NoWarn);WFAC010;WFO0003</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+    <!-- WPF leaves System.IO out because of System.Windows.Shapes.Path; code here aliases Shapes instead. -->
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\Morphdrop.ico" LogicalName="Morphdrop.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Morphdrop.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.17.2" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
+  </ItemGroup>
+
+</Project>
