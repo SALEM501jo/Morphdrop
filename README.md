@@ -7,7 +7,7 @@ on an action in the wheel that appears. The new file lands next to the original.
 
 <p align="center"><img src="docs/wheel.png" width="840" alt="The three pages of the ShiftDrop wheel, Convert, Tools and Edit, in the light and dark themes"></p>
 
-> **Status: early prototype (v0.6).** Images (conversion between nine formats, compression, resizing, metadata
+> **Status: v1.0.** Images (conversion between nine formats, compression, resizing, metadata
 > removal, cropping, backgrounds, redaction), PDFs (to images and back), and video and audio all work.
 
 ## What works today
@@ -68,8 +68,17 @@ HEIC can be read but not written: the HEVC encoder (x265) is GPL-licensed, so Ma
 
 ShiftDrop always answers drops with *Copy*, never *Move*, so the source never deletes your original.
 
-## Build and run
+## Install
 
+Download **ShiftDropApp-win-Setup.exe** from [Releases](https://github.com/SALEM501jo/ShiftDrop/releases) and run it.
+It installs for your user only (no admin rights) into `%LOCALAPPDATA%\ShiftDropApp`, adds Start menu and desktop
+shortcuts, and starts ShiftDrop. Updates: **Settings → Check for updates**. Uninstall from Windows' *Installed apps*;
+your settings and the downloaded FFmpeg stay in `%LOCALAPPDATA%\ShiftDrop`.
+
+> The installer isn't code-signed yet, so Windows SmartScreen may warn about an unknown publisher: choose
+> *More info → Run anyway*.
+
+## Build and run
 Requirements: Windows 10 or 11 and the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 ```bash
@@ -98,14 +107,20 @@ Developer switches:
 - `ShiftDrop.exe --exit` closes a running instance (useful before rebuilding).
 - Video and audio tests need FFmpeg: set `SHIFTDROP_FFMPEG` to an `ffmpeg.exe` (otherwise they're skipped).
 
-## Roadmap
+## Releasing
 
+`scripts/release.ps1` runs the tests, publishes a self-contained build (users don't need .NET) and packs it with
+[Velopack](https://velopack.io) into `artifacts\releases`: the installer, a portable zip and the update packages.
+Pushing a tag such as `v1.0.1` makes the *Release* workflow do the same on GitHub and publish a release.
+
+## Roadmap
 1. ~~Gesture, wheel and built-in image conversion~~ (v0.1)
 2. ~~WebP / AVIF / HEIC, compress, resize, remove metadata~~ (v0.2)
 3. ~~PDF ↔ images~~ (v0.3), ~~editing tools: crop, background, redact~~ (v0.4)
 4. ~~Video and audio (FFmpeg, downloaded on first use)~~ (v0.5)
 5. ~~Settings: key, pages, theme, quality, output folder, notifications, start with Windows~~ (v0.6)
-6. Installer, winget and signed releases
+6. ~~Installer, updates and automated releases~~ (v1.0)
+7. Next: code signing, a winget package
 
 ## Known limitations
 

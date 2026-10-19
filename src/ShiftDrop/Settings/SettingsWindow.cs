@@ -83,7 +83,8 @@ internal sealed class SettingsWindow : Window
         var footer = new DockPanel { Margin = new Thickness(24, 8, 24, 20), LastChildFill = false };
         DockPanel.SetDock(close, Dock.Right);
         footer.Children.Add(close);
-        footer.Children.Add(EditorUi.Row(openLog, version));
+        var update = EditorUi.Button("Check for updates", () => _ = Updates.CheckAsync(this));
+        footer.Children.Add(EditorUi.Row(openLog, update, version));
         page.Children.Add(footer);
         Content = page;
     }

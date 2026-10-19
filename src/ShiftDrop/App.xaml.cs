@@ -4,6 +4,7 @@ using ShiftDrop.Actions;
 using ShiftDrop.Editing;
 using ShiftDrop.Media;
 using ShiftDrop.Settings;
+using Velopack;
 using ShiftDrop.Input;
 using ShiftDrop.Overlay;
 using ShiftDrop.Tray;
@@ -22,6 +23,21 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // First of all: Velopack's install/update/uninstall hooks run the app with special arguments and exit here.
+        VelopackApp.Build()
+            .OnBeforeUninstallFastCallback(_ =>
+            {
+                try
+                {
+                    new AutoStart(Environment.ProcessPath!).SetEnabled(false); // don't leave a Run entry pointing nowhere
+                }
+                catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
+                {
+                    // Uninstalling goes on regardless.
+                }
+            })
+            .Run();
+
         base.OnStartup(e);
 
         if (e.Args is ["--render-logo", var logoFolder])
