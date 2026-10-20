@@ -44,6 +44,12 @@ internal static class Program
 
         Directory.CreateDirectory(output);
         DemoAssets assets = DemoAssets.Prepare(Path.Combine(output, "files"));
+        if (args.Contains("--cover"))
+        {
+            Cover.Render(assets, Path.Combine(output, "cover-instagram.png"));
+            return 0;
+        }
+
         foreach (VideoFormat format in new[] { VideoFormat.Reel, VideoFormat.Square })
         {
             if (only is not null && only != format.Name)
