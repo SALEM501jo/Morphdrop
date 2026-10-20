@@ -141,7 +141,7 @@ internal sealed class OutroScene : Scene
         FullFrame = true;
     }
 
-    public override double Duration => 3.6;
+    public override double Duration => 6.0; // room for the voiceover's last line
 
     protected override FrameworkElement Build(Size size)
     {
