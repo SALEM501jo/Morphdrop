@@ -14,7 +14,7 @@
     <!-- Drawn by Branding/Logo.cs; regenerate it by running Morphdrop.exe with the render-logo switch. -->
     <ApplicationIcon>Assets\Morphdrop.ico</ApplicationIcon>
     <RootNamespace>Morphdrop</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <!-- Morphdrop's UI is English: don't ship .NET's translated error messages (13 folders). -->
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- WFAC010 / WFO0003 ask WinForms apps to set DPI mode in code; this is a WPF app, which takes it from app.manifest. -->
