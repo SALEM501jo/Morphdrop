@@ -24,12 +24,27 @@ internal sealed class DragWatcher : IDisposable
     private uint _threadId;
     private volatile bool _enabled = true;
     private volatile int _triggerKey = VK_SHIFT;
+    private volatile bool _wheelOpen;
+    private readonly ScrollSteps _scroll = new();
 
     /// <summary>Shift was pressed mid-drag; the argument is the cursor position in physical screen pixels.</summary>
     public event Action<POINT>? Triggered;
 
     /// <summary>The mouse button that started the drag was released.</summary>
     public event Action? DragEnded;
+
+    /// <summary>The scroll wheel turned while the wheel was open (1 = up, −1 = down). The scroll is kept from the window below.</summary>
+    public event Action<int>? Scrolled;
+
+    /// <summary>A mouse button went down while the wheel was open (to close a wheel opened from the right-click menu).</summary>
+    public event Action<POINT>? ButtonPressed;
+
+    /// <summary>Set while the wheel is open, so scrolling turns its pages.</summary>
+    public bool WheelOpen
+    {
+        get => _wheelOpen;
+        set => _wheelOpen = value;
+    }
 
     /// <summary>The virtual key that opens the wheel mid-drag (Shift, Ctrl or Alt).</summary>
     public int TriggerKey
@@ -120,6 +135,18 @@ internal sealed class DragWatcher : IDisposable
             try
             {
                 int msg = (int)message;
+                if (msg == WM_MOUSEWHEEL && _wheelOpen)
+                {
+                    int delta = (short)(Marshal.PtrToStructure<MSLLHOOKSTRUCT>(data).mouseData >> 16);
+                    int direction = _scroll.Add(delta, Environment.TickCount64);
+                    if (direction != 0)
+                        Scrolled?.Invoke(direction);
+                    return 1; // swallowed: the window under the wheel doesn't scroll as well
+                }
+
+                if (_wheelOpen && msg is WM_LBUTTONDOWN or WM_RBUTTONDOWN)
+                    ButtonPressed?.Invoke(Marshal.PtrToStructure<MSLLHOOKSTRUCT>(data).pt);
+
                 bool relevant = msg is WM_LBUTTONDOWN or WM_LBUTTONUP or WM_RBUTTONDOWN or WM_RBUTTONUP
                     || (msg == WM_MOUSEMOVE && !_gesture.IsIdle);
                 if (relevant)

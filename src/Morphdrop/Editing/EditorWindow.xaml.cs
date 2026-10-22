@@ -102,19 +102,45 @@ internal partial class EditorWindow : Window
         }
 
         _image = image;
-        _editor = _action.Kind switch
+        Show(_action.Kind switch
         {
             EditKind.Crop => new CropEditor(image),
             EditKind.Redact => new RedactEditor(image),
+            EditKind.RemoveBackground => CreateCutoutEditor(image),
             _ => new BackgroundEditor(image),
-        };
+        });
         Status.Visibility = Visibility.Collapsed;
-        EditorHost.Content = _editor.View;
-        OptionsHost.Content = _editor.Options;
-        SaveButton.Content = _editor.SaveLabel;
-        SaveButton.IsEnabled = _editor.CanSave;
-        _editor.CanSaveChanged += () => SaveButton.IsEnabled = _editor.CanSave;
         Log.Info($"Opened '{_path}' in {_action.Label} ({image.Width}x{image.Height}, {image.Frames.Count} frame(s))");
+    }
+
+    private void Show(IImageEditor editor)
+    {
+        _editor = editor;
+        EditorHost.Content = editor.View;
+        OptionsHost.Content = editor.Options;
+        SaveButton.Content = editor.SaveLabel;
+        SaveButton.IsEnabled = editor.CanSave;
+        editor.CanSaveChanged += () =>
+        {
+            if (_editor == editor)
+                SaveButton.IsEnabled = editor.CanSave;
+        };
+    }
+
+    /// <summary>"Put on a background…" carries the cut-out over to the Background editor in this same window.</summary>
+    private Cutout.CutoutEditor CreateCutoutEditor(EditableImage image)
+    {
+        var editor = new Cutout.CutoutEditor(image);
+        editor.ContinueWithBackground += () =>
+        {
+            EditableImage cutout = image.WithFirstFrame(editor.CreateCutout());
+            _image = cutout;
+            image.Dispose();
+            Title = $"Background – {Path.GetFileName(_path)}";
+            Show(new BackgroundEditor(cutout));
+            Log.Info($"Carried the cut-out of '{_path}' over to Background");
+        };
+        return editor;
     }
 
     private void Save()

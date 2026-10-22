@@ -41,8 +41,8 @@ internal sealed class EditableImage : IDisposable
     /// <summary>Format the edited copy is saved in: the original's, or JPG/PNG when that can't be written well.</summary>
     public ImageFormat OutputFormat => Source.Kind switch
     {
-        ImageKind.Heic => ImageFormat.Jpeg,
-        ImageKind.Psd or ImageKind.Ico => ImageFormat.Png,
+        ImageKind.Heic or ImageKind.Raw => ImageFormat.Jpeg,
+        ImageKind.Psd or ImageKind.Ico or ImageKind.Svg => ImageFormat.Png,
         _ => Source,
     };
 
@@ -67,6 +67,13 @@ internal sealed class EditableImage : IDisposable
         }
     }
 
+    /// <summary>The same file with a new picture (e.g. a cut-out), for handing from one editor to the next.</summary>
+    public EditableImage WithFirstFrame(MagickImage picture)
+    {
+        var frames = new MagickImageCollection { picture };
+        return new EditableImage(Path, Source, frames, CreatePreview(picture));
+    }
+
     /// <summary>Applies an edit to every frame and saves a copy as "name (suffix).ext" next to the original.</summary>
     public string Save(string suffix, Action<MagickImageCollection> edit)
     {
@@ -82,7 +89,7 @@ internal sealed class EditableImage : IDisposable
     /// <summary>Saves a picture composed elsewhere (e.g. the image on a background): photos as JPG, the rest as PNG.</summary>
     public string SaveComposite(string suffix, byte[] png)
     {
-        bool photo = Source.Kind is ImageKind.Jpeg or ImageKind.Heic or ImageKind.Avif or ImageKind.Jxl
+        bool photo = Source.Kind is ImageKind.Jpeg or ImageKind.Heic or ImageKind.Avif or ImageKind.Jxl or ImageKind.Raw
             || (Source.Kind == ImageKind.WebP && !ImageTools.WebPIsLossless(Path));
         ImageFormat target = photo ? (Source.CanWrite ? Source : ImageFormat.Jpeg) : ImageFormat.Png;
 

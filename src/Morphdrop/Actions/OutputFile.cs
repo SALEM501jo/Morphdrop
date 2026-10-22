@@ -67,10 +67,10 @@ internal static class OutputFile
     }
 
     /// <summary>Creates "name (suffix)" next to <paramref name="inputPath"/>, or "name (suffix) (1)"… if taken.</summary>
-    public static string CreateUniqueFolder(string inputPath, string suffix)
+    public static string CreateUniqueFolder(string inputPath, string? suffix)
     {
         string directory = DirectoryFor(inputPath, Folder);
-        string baseName = $"{Path.GetFileNameWithoutExtension(inputPath)} ({suffix})";
+        string baseName = Path.GetFileNameWithoutExtension(inputPath) + (suffix is null ? "" : $" ({suffix})");
         for (int copy = 0; copy < 10_000; copy++)
         {
             string path = Path.Combine(directory, copy == 0 ? baseName : $"{baseName} ({copy})");

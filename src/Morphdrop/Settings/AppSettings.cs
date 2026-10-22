@@ -31,6 +31,9 @@ internal sealed record AppSettings
 
     public NotificationLevel Notifications { get; init; } = NotificationLevel.All;
 
+    /// <summary>"Morphdrop…" in File Explorer's right-click menu.</summary>
+    public bool RightClickMenu { get; init; } = true;
+
     public IReadOnlySet<string> EnabledPages => new HashSet<string>(
         new[] { ConvertPage ? "Convert" : null, ToolsPage ? "Tools" : null, EditPage ? "Edit" : null }.OfType<string>());
 

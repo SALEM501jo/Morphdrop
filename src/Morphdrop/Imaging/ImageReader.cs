@@ -20,6 +20,12 @@ internal static class ImageReader
             return ApngReader.Read(File.ReadAllBytes(path));
 
         var settings = new MagickReadSettings { Format = format.MagickFormat };
+        if (format.Kind == ImageKind.Svg)
+        {
+            // SVGs have no fixed size: draw them big enough to be sharp (longest side 2048 px), transparent around.
+            settings.BackgroundColor = MagickColors.None;
+            settings.Density = SvgDensity(path);
+        }
         if (!allFrames)
         {
             settings.FrameIndex = 0;
@@ -41,6 +47,14 @@ internal static class ImageReader
             images.Dispose();
             throw;
         }
+    }
+
+    private static Density SvgDensity(string path)
+    {
+        using var probe = new MagickImage();
+        probe.Ping(path, new MagickReadSettings { Format = MagickFormat.Rsvg });
+        double scale = Math.Clamp(2048.0 / Math.Max(1, Math.Max(probe.Width, probe.Height)), 1, 32);
+        return new Density(96 * scale);
     }
 
     public static IMagickImage<byte> Largest(MagickImageCollection images) =>

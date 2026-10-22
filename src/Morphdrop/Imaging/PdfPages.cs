@@ -59,6 +59,21 @@ internal static class PdfPages
         return count;
     }
 
+    /// <summary>Small pictures of each page (no longer than <paramref name="maxSide"/> pixels), for the page organizer.</summary>
+    public static int RenderThumbnails(string path, double maxSide, Action<int, int, byte[]> onPage)
+    {
+        PdfDocument document = Open(path);
+        int count = (int)document.PageCount;
+        for (int index = 0; index < count; index++)
+        {
+            using PdfPage page = document.GetPage((uint)index);
+            double fit = maxSide / Math.Max(1, Math.Max(page.Size.Width, page.Size.Height));
+            onPage(index, count, RenderPage(page, page.Size.Width * fit, page.Size.Height * fit));
+        }
+
+        return count;
+    }
+
     private static byte[] RenderPage(PdfPage page, double width, double height)
     {
         var options = new PdfPageRenderOptions

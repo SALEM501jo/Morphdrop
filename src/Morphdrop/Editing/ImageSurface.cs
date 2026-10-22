@@ -36,6 +36,13 @@ internal sealed class ImageSurface
 
     public event Action? ScaleChanged;
 
+    /// <summary>Drawn behind the picture, where it is transparent (e.g. a checkerboard).</summary>
+    public Brush? Backdrop
+    {
+        get => _content.Background;
+        set => _content.Background = value;
+    }
+
     public double Width { get; }
 
     public double Height { get; }

@@ -104,7 +104,7 @@ internal static class ImageWriter
                 break;
             case ImageKind.Pdf:
                 FitOnA4Page(image);
-                image.Settings.Compression = source.Kind is ImageKind.Jpeg or ImageKind.Heic or ImageKind.Avif or ImageKind.WebP
+                image.Settings.Compression = source.Kind is ImageKind.Jpeg or ImageKind.Heic or ImageKind.Avif or ImageKind.WebP or ImageKind.Raw
                     ? CompressionMethod.JPEG // photos
                     : CompressionMethod.Zip; // screenshots and graphics stay lossless
                 image.Quality = JpegQuality;

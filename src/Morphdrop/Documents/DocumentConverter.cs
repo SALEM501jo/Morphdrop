@@ -57,6 +57,56 @@ internal static class DocumentConverter
         }
     }
 
+    /// <summary>Word documents other than .docx (which Morphdrop reads itself) need Word for their text.</summary>
+    public static bool CanReadText(string path) => AppFor(path) == OfficeApp.Word && IsInstalled(OfficeApp.Word);
+
+    /// <summary>The document's text, through a hidden, read-only Word (closed again afterwards).</summary>
+    public static string ReadText(string input)
+    {
+        string fullInput = Path.GetFullPath(input);
+        string text = "";
+        RunOnStaThread(() =>
+        {
+            dynamic word = Activator.CreateInstance(Type.GetTypeFromProgID(ProgId(OfficeApp.Word))!)!;
+            dynamic? document = null;
+            bool quit = false;
+            try
+            {
+                word.DisplayAlerts = 0;
+                quit = word.Documents.Count == 0;
+                document = word.Documents.Open(FileName: fullInput, ConfirmConversions: false, ReadOnly: true,
+                    AddToRecentFiles: false, PasswordDocument: "morphdrop", Visible: false);
+                text = (string)document.Content.Text;
+                document.Close(SaveChanges: 0);
+            }
+            catch (COMException ex)
+            {
+                throw new InvalidOperationException($"Word couldn't open the file (it may be password-protected or damaged): {ex.Message}", ex);
+            }
+            finally
+            {
+                if (document is not null)
+                    Marshal.FinalReleaseComObject(document);
+                if (quit)
+                {
+                    try
+                    {
+                        word.Quit();
+                    }
+                    catch (COMException)
+                    {
+                        // It's closing anyway.
+                    }
+                }
+
+                Marshal.FinalReleaseComObject(word);
+            }
+        });
+
+        // Word ends paragraphs with a bare carriage return.
+        return text.Replace("\r\n", "\n").Replace('\r', '\n').Replace("\n", Environment.NewLine).Trim();
+    }
+
     private static string ProgId(OfficeApp app) => $"{app}.Application";
 
     /// <summary>

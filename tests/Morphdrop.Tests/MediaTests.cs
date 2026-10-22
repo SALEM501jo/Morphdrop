@@ -89,10 +89,11 @@ public class MediaInfoTests
 
         Assert.Equal(new[] { "MP4", "GIF", "WEBP", "MP3", "M4A" }, Labels("clip.mov", "Convert"));
         Assert.Equal(new[] { "GIF", "WEBP", "MP3", "M4A" }, Labels("clip.mp4", "Convert"));
-        Assert.Equal(new[] { "Compress", "720p", "Mute" }, Labels("clip.mp4", "Tools"));
+        Assert.Equal(new[] { "Compress", "720p", "Mute", "ZIP" }, Labels("clip.mp4", "Tools"));
         Assert.Equal(new[] { "M4A", "WAV", "FLAC" }, Labels("song.mp3", "Convert"));
         Assert.Contains("MP4", Labels("animation.gif", "Convert"));
-        Assert.DoesNotContain(ActionCatalog.ForFileName("song.mp3"), page => page.Name is "Tools" or "Edit");
+        Assert.Equal(new[] { "ZIP" }, Labels("song.mp3", "Tools")); // no video tools for a song
+        Assert.DoesNotContain(ActionCatalog.ForFileName("song.mp3"), page => page.Name == "Edit");
     }
 }
 

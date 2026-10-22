@@ -20,6 +20,7 @@ public partial class App : Application
     private string _triggerName = "Shift";
     private DragWatcher? _watcher;
     private TrayIcon? _tray;
+    private Shell.MenuRequests? _menuRequests;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -30,6 +31,7 @@ public partial class App : Application
                 try
                 {
                     new AutoStart(Environment.ProcessPath!).SetEnabled(false); // don't leave a Run entry pointing nowhere
+                    new Shell.ExplorerMenu().SetEnabled(false, Environment.ProcessPath!); // nor a menu entry
                 }
                 catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
                 {
@@ -63,10 +65,14 @@ public partial class App : Application
             return;
         }
 
+        // "Morphdrop.exe --menu file": the right-click menu, one process per selected file.
+        string[] menuFiles = e.Args is [Shell.ExplorerMenu.Argument, .. var picked] ? picked : Array.Empty<string>();
+
         _singleInstance = new Mutex(initiallyOwned: false, @"Local\Morphdrop.SingleInstance", out bool isFirstInstance);
         if (!isFirstInstance)
         {
-            MessageBox.Show("Morphdrop is already running. Look for its icon in the notification area.", "Morphdrop");
+            if (menuFiles.Length == 0 || !Shell.MenuRequests.TrySend(menuFiles))
+                MessageBox.Show("Morphdrop is already running. Look for its icon in the notification area.", "Morphdrop");
             Shutdown();
             return;
         }
@@ -96,7 +102,9 @@ public partial class App : Application
             (action, path) => EditorWindow.Open(action, path, runner),
             (action, files) =>
             {
-                if (action is MediaAction)
+                if (action is WindowAction window)
+                    window.Open(files, runner);
+                else if (action is MediaAction)
                     ffmpegSetup?.RunWhenReady(() => runner.Run(action, files));
                 else
                     runner.Run(action, files);
@@ -132,6 +140,21 @@ public partial class App : Application
         _watcher = watcher;
         watcher.Triggered += point => Dispatcher.InvokeAsync(() => wheel.OnShiftPressed(point));
         watcher.DragEnded += () => Dispatcher.InvokeAsync(wheel.OnDragEnded);
+        watcher.Scrolled += direction => Dispatcher.InvokeAsync(() => wheel.OnScrolled(direction));
+        wheel.ActiveChanged += active => watcher.WheelOpen = active;
+        watcher.ButtonPressed += point => Dispatcher.InvokeAsync(() => wheel.OnButtonPressed(point));
+
+        var menuRequests = new Shell.MenuRequests(Dispatcher);
+        _menuRequests = menuRequests;
+        menuRequests.Requested += files =>
+        {
+            Log.Info($"Right-click menu: {files.Length} item(s) starting with '{Path.GetFileName(files[0])}'");
+            wheel.ShowForClick(files);
+        };
+        menuRequests.Start();
+        if (menuFiles.Length > 0)
+            menuRequests.Receive(menuFiles);
+        var explorerMenu = new Shell.ExplorerMenu();
         tray.PausedChanged += paused =>
         {
             watcher.Enabled = !paused;
@@ -155,6 +178,18 @@ public partial class App : Application
             Imaging.ImageWriter.Preset = current.Quality;
             OutputFile.Folder = current.OutputFolder;
             tray.OnlyNotifyProblems = current.Notifications == NotificationLevel.ErrorsOnly;
+            try
+            {
+                string exe = Environment.ProcessPath!;
+                if (!current.RightClickMenu)
+                    explorerMenu.SetEnabled(false, exe);
+                else if (!explorerMenu.IsInstalledFor(exe))
+                    explorerMenu.SetEnabled(true, exe);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or System.Security.SecurityException)
+            {
+                Log.Error("Could not change the right-click menu", ex);
+            }
             _triggerName = name;
         }
 
@@ -182,6 +217,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _watcher?.Dispose();
+        _menuRequests?.Dispose();
         _tray?.Dispose();
         _singleInstance?.Dispose();
         _exitSignal?.Dispose();

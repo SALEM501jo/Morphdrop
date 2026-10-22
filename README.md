@@ -15,9 +15,16 @@ on an action in the wheel that appears. The new file lands next to the original.
 <p align="center"><img src="docs/wheel.png" width="840" alt="The three pages of the Morphdrop wheel, Convert, Tools and Edit, in the light and dark themes"></p>
 
 - **Drag + Shift** anywhere a file can be dragged (File Explorer, the desktop) opens the wheel under the cursor.
-  **Press Shift again** to turn to the next page.
-- **Convert**: PNG, JPG, WebP, AVIF, PDF, ICO, TIFF, GIF and BMP. It also reads HEIC (iPhone photos), JPEG XL and
-  PSD, with no codec extensions to install.
+  **Press Shift again**, or turn the **scroll wheel**, to change page.
+- **Straight from the browser**: drag a picture (or a link to a PDF, a photo, a document…) out of Chrome, Edge or
+  Firefox the same way. It is saved to your Downloads folder and then converted. Links are downloaded without the
+  browser's sign-in or cookies.
+- **Right-click menu**: "Morphdrop…" in File Explorer's menu (for files and folders, under "Show more options" on
+  Windows 11) opens the wheel at the cursor; click a slice. It can be turned off in Settings.
+- **Recent**: the tray menu lists the last results; click one to show it in File Explorer.
+- **Convert**: PNG, JPG, WebP, AVIF, PDF, ICO, TIFF, GIF, BMP and JPEG XL. It also reads HEIC (iPhone photos),
+  PSD, **camera RAW** (Canon CR2/CR3, Nikon NEF, Sony ARW, Adobe DNG, Fuji RAF, Olympus ORF, Panasonic RW2…) and
+  **SVG** (drawn by librsvg, sharp at 2048 px), with no codec extensions to install.
   - Photos are turned upright using their EXIF orientation. Transparent areas become white in formats without
     transparency (JPG, BMP).
   - Animations (GIF, WebP and animated PNG) stay animated when converted to GIF or WebP. A multi-page TIFF
@@ -32,6 +39,11 @@ on an action in the wheel that appears. The new file lands next to the original.
   - **50%** and **Max 1920** (fit within 1920 × 1920 px), keeping the format and the animation.
   - **Clean** removes location, camera details, comments and other metadata from JPEG and PNG *without
     re-encoding*: the image data is copied byte for byte, and the orientation is kept so photos don't turn sideways.
+  - **Text** reads the text in a picture (a screenshot, a photo of a page) with the OCR built into Windows, offline,
+    copies it to the clipboard and saves `name (text).txt`. With several OCR languages installed (Arabic and English,
+    say), the one that reads the picture best wins.
+  - **ZIP** puts any files or folders into one ZIP; **Extract** unpacks ZIP, 7Z, RAR, TAR and TAR.GZ archives into a
+    folder (entries that would land outside it are refused).
 - **Edit** (press Shift a third time): dropping a file on these opens a small editor window.
   - **Crop**: drag the box or its handles; Free, Original, Square, 4:3, 3:2, 16:9 and 9:16 presets. Animations stay
     animated.
@@ -39,7 +51,17 @@ on an action in the wheel that appears. The new file lands next to the original.
     size or as a square, 4:5, 16:9 or 9:16 picture.
   - **Redact**: drag boxes over anything private; they become black boxes or coarse pixels. EXIF (which can hold an
     unredacted thumbnail and the location) is removed too.
-  - Enter saves a copy, Esc cancels, Ctrl+Z undoes the last redaction box.
+  - **Remove BG**: an AI model finds the subject and removes the background in about 2 seconds, on your PC (nothing
+    is uploaded). Fix what it missed with the **Keep** and **Remove** brushes, or click a color with the **magic
+    wand** (great for plain backgrounds, and it works without the AI). Saves `name (no background).png`, or
+    **Put on a background…** carries the cut-out straight into the Background editor. The model
+    ([IS-Net](https://github.com/xuebinqin/DIS), 179 MB) is downloaded once, when you ask for it, and checked against
+    a pinned SHA-256.
+  - **PDF + text**: makes a PDF from the dropped pictures with text **above and below** each picture, like captions
+    in Word. Drag the pages into order, drop more pictures in, pick A4, Letter or the picture's own shape, the
+    orientation, margins and text size, and number the pages if you like. Arabic and other right-to-left text is
+    laid out properly. JPEG photos go in unchanged (no quality lost).
+  - Enter saves a copy, Esc cancels, Ctrl+Z undoes the last redaction box or brush stroke.
 - **Video and audio** (needs FFmpeg; Morphdrop offers to download it the first time, 115 MB, checked against a
   pinned SHA-256):
   - Convert video to **MP4** (H.264), **GIF** (15 fps, at most 640 px wide, with a palette made for the clip) or
@@ -52,11 +74,26 @@ on an action in the wheel that appears. The new file lands next to the original.
   - Drop a PDF on PNG, JPG or WebP to save every page as an image (200 DPI). A one-page PDF gives `name.png`;
     a longer one a folder `name (pages)` with `page 01.png`, `page 02.png`… Rendered by the PDF engine built into
     Windows, so nothing extra is installed.
+  - **Tools page for PDFs**:
+    - **Organize** shows every page as a tile: drag to reorder, turn or delete pages, drop more PDFs or pictures in,
+      and save `name (edited).pdf`. Drop several PDFs on it to **merge** them in the order you pick
+      (`first name (merged).pdf`).
+    - **Split** saves each page as its own PDF in a folder `name (pages)`.
+    - **Numbers** adds "1 / 12" at the bottom of every page.
+    - **Compress** stores the photos inside at a sensible size and quality (text and drawings stay sharp).
+    - **Sign** puts typed text, today's date or your signature on any page; draw the signature once and it is
+      remembered on this PC only. Saves `name (signed).pdf`.
+    - **Password** locks a copy with a password (AES-256), or saves an unlocked copy of a locked PDF.
+  - **TXT** copies a PDF's text and saves it as `name.txt`; scanned pages are read with OCR.
   - Drag several images onto PDF to get **one PDF** with a page per image, in File Explorer's name order
     (`scan 2` before `scan 10`), saved as `first name (N pages).pdf`.
   - Drop a Word, Excel or PowerPoint file (`.docx`, `.doc`, `.rtf`, `.odt`, `.xlsx`, `.xls`, `.ods`, `.pptx`,
     `.ppt`, `.odp`) on PDF to save it as a PDF. This uses your installed Microsoft Office (in the background,
     read-only), or LibreOffice if you don't have Office. Without either, documents get no PDF slice.
+  - Word documents also get **TXT** (`.docx` is read without Word), and Excel workbooks **CSV** (one per sheet,
+    UTF-8, without Excel).
+- **Fonts**: TTF and OTF to **WOFF2** or **WOFF** for websites, and web fonts back to TTF/OTF to install, without
+  other software (WOFF2 roughly halves a font: Arial goes from 1 MB to 434 KB).
 - **Never overwrites anything**: results are named `photo (compressed).jpg`, `photo (1).png` and so on.
 - Drop on the hub (centre) or drag away to cancel. Drag a few files at once to process them all.
 
@@ -145,6 +182,21 @@ renders PNG frames instead.
 - [Magick.NET](https://github.com/dlemstra/Magick.NET) (Apache 2.0), which bundles
   [ImageMagick](https://imagemagick.org/script/license.php) and its codec libraries (libheif, libwebp, libaom,
   libjxl and others) under their own licenses.
+
+- [PDFsharp](https://github.com/empira/PDFsharp) 6.2.4 (MIT). It is pinned to 6.2.4 on purpose: from 6.5 on,
+  PDFsharp is licensed under the AGPL, which doesn't fit an MIT app.
+
+- [ONNX Runtime](https://github.com/microsoft/onnxruntime) (MIT) runs the background-removal model on the CPU.
+
+- [PdfPig](https://github.com/UglyToad/PdfPig) (Apache 2.0) reads the text of PDFs.
+
+- [SharpCompress](https://github.com/adamhathcock/sharpcompress) (MIT) unpacks 7Z, RAR and TAR archives.
+
+- [ExcelDataReader](https://github.com/ExcelDataReader/ExcelDataReader) (MIT) reads Excel workbooks for CSV.
+
+- The background-removal model is not part of Morphdrop; on first use it downloads IS-Net "general use"
+  ([DIS](https://github.com/xuebinqin/DIS), Apache 2.0), as exported to ONNX by
+  [rembg](https://github.com/danielgatis/rembg), into `%LOCALAPPDATA%\Morphdrop\models`.
 
 ## License
 

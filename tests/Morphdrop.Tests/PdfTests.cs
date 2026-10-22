@@ -124,13 +124,24 @@ public sealed class PdfTests : IDisposable
     }
 
     [Fact]
-    public void APdf_OffersImageFormats()
+    public void APdf_OffersImageFormats_AndPdfTools()
     {
         IReadOnlyList<ActionPage> pages = ActionCatalog.ForFileName("report.pdf");
 
-        ActionPage convert = Assert.Single(pages);
-        Assert.Equal(new[] { "PNG", "JPG", "WEBP" }, convert.Actions.Select(a => a.Label));
-        Assert.Equal("Save the pages as PNG", convert.Actions[0].Description);
+        Assert.Equal(new[] { "Convert", "Tools" }, pages.Select(page => page.Name));
+        Assert.Equal(new[] { "PNG", "JPG", "WEBP", "TXT" }, pages[0].Actions.Select(a => a.Label));
+        Assert.Equal("Save the pages as PNG", pages[0].Actions[0].Description);
+        Assert.Equal(new[] { "Organize", "Split", "Numbers", "Compress", "Sign", "Password", "ZIP" }, pages[1].Actions.Select(a => a.Label));
+    }
+
+    [Fact]
+    public void Organize_SaysItMergesWhenSeveralPdfsAreDragged()
+    {
+        var organize = (ICombiningAction)ActionCatalog.ForFileName("report.pdf")[1].Actions[0];
+
+        Assert.False(organize.Combines(new[] { "a.pdf" }));
+        Assert.True(organize.Combines(new[] { "a.pdf", "b.pdf" }));
+        Assert.Equal("Merge 2 PDFs (you pick the order)", organize.CombinedDescription(2));
     }
 
     [Fact]

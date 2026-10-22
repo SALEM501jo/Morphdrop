@@ -11,7 +11,11 @@ internal sealed class TrayIcon : IDisposable
     private readonly Forms.NotifyIcon _notifyIcon;
     private readonly Forms.ContextMenuStrip _menu;
     private readonly Drawing.Icon _icon;
+    private const int RecentCount = 8;
+
     private readonly Forms.ToolStripMenuItem _hint = new("Drag a file, then press Shift") { Enabled = false };
+    private readonly Forms.ToolStripMenuItem _recent = new("Recent") { Enabled = false };
+    private readonly List<string> _recentOutputs = new();
     private string? _revealOnClick;
 
     public TrayIcon()
@@ -23,6 +27,7 @@ internal sealed class TrayIcon : IDisposable
 
         _menu = new Forms.ContextMenuStrip();
         _menu.Items.Add(_hint);
+        _menu.Items.Add(_recent);
         _menu.Items.Add(new Forms.ToolStripSeparator());
         _menu.Items.Add(new Forms.ToolStripMenuItem("Settings…", null, (_, _) => SettingsRequested?.Invoke()) { Font = new Drawing.Font(_menu.Font, Drawing.FontStyle.Bold) });
         _menu.Items.Add(pause);
@@ -71,6 +76,9 @@ internal sealed class TrayIcon : IDisposable
 
     public void ShowResult(ActionResult result)
     {
+        foreach ((_, string output) in result.Outputs)
+            Remember(output);
+
         if (result.Errors.Count > 0)
         {
             (string input, Exception error) = result.Errors[0];
@@ -84,7 +92,8 @@ internal sealed class TrayIcon : IDisposable
         else if (result.Outputs.Count == 1)
         {
             (string input, string output) = result.Outputs[0];
-            Show($"Saved {Path.GetFileName(output)}", $"{SizeChange(input, output)}Click to show it in File Explorer.", Forms.ToolTipIcon.Info, output);
+            string detail = result.Action is Text.TextAction ? "The text is on the clipboard too. " : SizeChange(input, output);
+            Show($"Saved {Path.GetFileName(output)}", $"{detail}Click to show it in File Explorer.", Forms.ToolTipIcon.Info, output);
         }
         else if (result.Outputs.Count > 1)
         {
@@ -127,8 +136,32 @@ internal sealed class TrayIcon : IDisposable
 
     private void RevealOutput()
     {
-        if (_revealOnClick is { } path && File.Exists(path))
+        if (_revealOnClick is { } path)
+            Reveal(path);
+    }
+
+    private static void Reveal(string path)
+    {
+        if (File.Exists(path) || Directory.Exists(path))
             Start("explorer.exe", $"/select,\"{path}\"");
+    }
+
+    /// <summary>Keeps the last few results in the Recent menu, newest first; clicking one shows it in File Explorer.</summary>
+    private void Remember(string output)
+    {
+        _recentOutputs.Remove(output);
+        _recentOutputs.Insert(0, output);
+        if (_recentOutputs.Count > RecentCount)
+            _recentOutputs.RemoveAt(_recentOutputs.Count - 1);
+
+        _recent.DropDownItems.Clear();
+        foreach (string path in _recentOutputs)
+        {
+            var item = new Forms.ToolStripMenuItem(Path.GetFileName(path), null, (_, _) => Reveal(path)) { ToolTipText = path };
+            _recent.DropDownItems.Add(item);
+        }
+
+        _recent.Enabled = true;
     }
 
     private static void OpenLog()

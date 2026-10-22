@@ -20,9 +20,9 @@ public sealed class ActionCatalogTests : IDisposable
         IReadOnlyList<ActionPage> pages = ActionCatalog.For(new[] { png });
 
         Assert.Equal(new[] { "Convert", "Tools", "Edit" }, pages.Select(p => p.Name));
-        Assert.Equal(new[] { "Crop", "Background", "Redact" }, Labels(pages, "Edit"));
-        Assert.Equal(new[] { "JPG", "WEBP", "AVIF", "PDF", "ICO", "TIFF", "GIF", "BMP" }, Labels(pages, "Convert"));
-        Assert.Equal(new[] { "Compress", "50%", "Max 1920", "Clean" }, Labels(pages, "Tools"));
+        Assert.Equal(new[] { "Crop", "Background", "Redact", "Remove BG", "PDF + text" }, Labels(pages, "Edit"));
+        Assert.Equal(new[] { "JPG", "WEBP", "AVIF", "PDF", "ICO", "TIFF", "GIF", "BMP", "JXL" }, Labels(pages, "Convert"));
+        Assert.Equal(new[] { "Compress", "50%", "Max 1920", "Clean", "Text", "ZIP" }, Labels(pages, "Tools"));
     }
 
     [Fact]
@@ -30,14 +30,17 @@ public sealed class ActionCatalogTests : IDisposable
     {
         IReadOnlyList<ActionPage> pages = ActionCatalog.ForFileName("IMG_0001.HEIC");
 
-        Assert.Equal(new[] { "PNG", "JPG", "WEBP", "AVIF", "PDF", "ICO", "TIFF", "GIF", "BMP" }, Labels(pages, "Convert"));
-        Assert.Equal(new[] { "50%", "Max 1920" }, Labels(pages, "Tools"));
+        Assert.Equal(new[] { "PNG", "JPG", "WEBP", "AVIF", "PDF", "ICO", "TIFF", "GIF", "BMP", "JXL" }, Labels(pages, "Convert"));
+        Assert.Equal(new[] { "50%", "Max 1920", "Text", "ZIP" }, Labels(pages, "Tools"));
     }
 
     [Fact]
-    public void AnIcon_HasNoToolsPage()
+    public void AnIcon_GetsNoImageTools_OnlyZip()
     {
-        Assert.Equal(new[] { "Convert" }, ActionCatalog.ForFileName("app.ico").Select(p => p.Name));
+        IReadOnlyList<ActionPage> pages = ActionCatalog.ForFileName("app.ico");
+
+        Assert.Equal(new[] { "Convert", "Tools" }, pages.Select(p => p.Name));
+        Assert.Equal(new[] { "ZIP" }, Labels(pages, "Tools"));
     }
 
     [Fact]
@@ -47,12 +50,16 @@ public sealed class ActionCatalogTests : IDisposable
     }
 
     [Fact]
-    public void FoldersAndUnknownFiles_GetNoActions()
+    public void FoldersAndOtherFiles_CanStillBeZipped()
     {
         string text = Path.Combine(_folder, "notes.txt");
         File.WriteAllText(text, "hi");
 
-        Assert.Empty(ActionCatalog.For(new[] { text }));
-        Assert.Empty(ActionCatalog.For(new[] { _folder }));
+        Assert.Equal(new[] { "ZIP" }, ActionCatalog.For(new[] { text }).SelectMany(page => page.Actions).Select(action => action.Label));
+        Assert.Equal(new[] { "ZIP" }, ActionCatalog.For(new[] { _folder }).SelectMany(page => page.Actions).Select(action => action.Label));
     }
+
+    [Fact]
+    public void NothingThatDoesntExist_GetsActions() =>
+        Assert.Empty(ActionCatalog.For(new[] { Path.Combine(_folder, "gone.png") }));
 }

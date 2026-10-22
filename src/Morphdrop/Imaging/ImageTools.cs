@@ -39,7 +39,7 @@ internal static class ImageTools
                 frame.Resize(new MagickGeometry(FullHd, FullHd) { Greater = true });
         }
 
-        // HEIC can't be written, so resized HEIC photos are saved as JPG.
+        // HEIC and RAW can't be written, so resized photos in those formats are saved as JPG.
         ImageFormat target = source.CanWrite ? source : ImageFormat.Jpeg;
         string extension = target == source ? Path.GetExtension(inputPath) : target.Extension;
         bool lossless = source.Kind == ImageKind.WebP && WebPIsLossless(inputPath);

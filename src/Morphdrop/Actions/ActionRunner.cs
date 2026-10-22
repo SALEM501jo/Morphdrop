@@ -25,7 +25,7 @@ internal sealed class ActionRunner
     /// <returns>The background job, or null when none of the files applied.</returns>
     public Task? Run(IFileAction action, IReadOnlyList<string> files)
     {
-        string[] inputs = files.Where(file => File.Exists(file) && action.AppliesTo(file)).ToArray();
+        string[] inputs = files.Where(file => (File.Exists(file) || Directory.Exists(file)) && action.AppliesTo(file)).ToArray();
         if (inputs.Length == 0)
             return null;
 

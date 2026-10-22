@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -21,6 +22,7 @@ internal partial class WheelWindow : Window
 
     private static readonly TimeSpan GhostTimeout = TimeSpan.FromMilliseconds(1500);
     private static readonly TimeSpan DropTimeout = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan ClickTimeout = TimeSpan.FromSeconds(30);
 
     private readonly ActionRunner _runner;
     private readonly Action<EditAction, string> _openEditor;
@@ -28,9 +30,11 @@ internal partial class WheelWindow : Window
     private readonly DropTargetHelper _dropHelper = new();
     private readonly DispatcherTimer _hideTimer;
     private readonly IntPtr _hwnd;
-    private Phase _phase = Phase.Hidden;
+    private Phase _state = Phase.Hidden;
     private int _fadeGeneration;
     private string[] _files = Array.Empty<string>();
+    private BrowserDrop? _browser; // a picture or link dragged out of a browser, saved on drop
+    private bool _clickMode; // opened from the right-click menu: a slice is picked with a click, not a drop
     private IReadOnlyList<ActionPage> _pages = Array.Empty<ActionPage>();
     private int _pageIndex;
     private string _hubTitle = "";
@@ -61,6 +65,21 @@ internal partial class WheelWindow : Window
         };
 
         SourceInitialized += (_, _) => MakeNonActivating();
+        MouseMove += (_, e) =>
+        {
+            if (_clickMode && _phase == Phase.Active)
+                UpdateHighlight(WheelGeometry.HitTest(e.GetPosition(Wheel), Actions.Count));
+        };
+        MouseLeftButtonUp += (_, e) =>
+        {
+            if (_clickMode)
+                ClickAt(e.GetPosition(Wheel));
+        };
+        MouseRightButtonUp += (_, _) =>
+        {
+            if (_clickMode)
+                FadeOut();
+        };
         DragEnter += OnDragEnter;
         DragOver += OnDragOver;
         DragLeave += OnDragLeave;
@@ -74,6 +93,21 @@ internal partial class WheelWindow : Window
     {
         Show();
         Hide();
+    }
+
+    /// <summary>Raised when the wheel opens for a drag or closes; the mouse hook turns pages with the scroll wheel meanwhile.</summary>
+    public event Action<bool>? ActiveChanged;
+
+    private Phase _phase
+    {
+        get => _state;
+        set
+        {
+            bool wasActive = _state == Phase.Active;
+            _state = value;
+            if (wasActive != (value == Phase.Active))
+                ActiveChanged?.Invoke(value == Phase.Active);
+        }
     }
 
     private IReadOnlyList<IFileAction> Actions => _pages.Count > 0 ? _pages[_pageIndex].Actions : Array.Empty<IFileAction>();
@@ -128,9 +162,10 @@ internal partial class WheelWindow : Window
     {
         _hideTimer.Stop();
         string[]? files = ReadFiles(e.Data);
-        if (files is null)
+        BrowserDrop? browser = files is null ? BrowserDrop.Read(e.Data) : null;
+        if (files is null && browser is null)
         {
-            Log.Info("A drag without files entered the wheel; hiding it");
+            Log.Info($"A drag without files entered the wheel ({string.Join(", ", SafeFormats(e.Data))}); hiding it");
             e.Effects = DragDropEffects.None;
             e.Handled = true;
             HideNow();
@@ -138,7 +173,7 @@ internal partial class WheelWindow : Window
         }
 
         if (_phase != Phase.Active)
-            Open(files);
+            Open(files ?? new[] { Path.Combine(BrowserDrop.DownloadsFolder(), browser!.FileName) }, browser);
         UpdateHover(e);
         _dropHelper.DragEnter(_hwnd, e.Data, e.Effects);
         KeepAboveDragImage();
@@ -179,17 +214,13 @@ internal partial class WheelWindow : Window
             IFileAction action = Actions[index];
             e.Effects = CopyEffect(e.AllowedEffects);
             Log.Info($"Dropped on '{action.Label}': {action.Description} for {_files.Length} item(s)");
-            if (action is EditAction edit)
+            if (_browser is { } browser)
             {
-                // Editors take one file; open it once the drop has returned, so the drag source isn't kept waiting.
-                if (_files.FirstOrDefault(file => File.Exists(file) && edit.AppliesTo(file)) is { } file)
-                    Dispatcher.BeginInvoke(() => _openEditor(edit, file));
+                DropFromBrowser(browser, action, e.Data);
             }
             else
             {
-                string[] files = _files;
-                // May ask a question first, so not inside the drop, and only once the wheel has faded away.
-                Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => _run(action, files));
+                Act(action, _files);
             }
         }
         else
@@ -203,13 +234,18 @@ internal partial class WheelWindow : Window
         FadeOut();
     }
 
-    private void Open(string[] files)
+    private void Open(string[] files, BrowserDrop? browser = null)
     {
         _files = files;
-        _pages = ActionCatalog.For(files, EnabledPages);
+        _browser = browser;
+        _pages = browser is null
+            ? ActionCatalog.For(files, EnabledPages)
+            : ActionCatalog.ForFileName(browser.FileName).Where(page => EnabledPages is null || EnabledPages.Contains(page.Name)).ToList();
         Wheel.SetDarkTheme(UseDarkTheme());
         _pageIndex = 0;
-        (_hubTitle, _hubSubtitle) = Describe(files, _pages.Count);
+        (_hubTitle, _hubSubtitle) = browser is null
+            ? Describe(files, _pages.Count)
+            : (browser.Link is null ? "From the browser" : "Link", browser.FileName);
         ShowPage();
         Wheel.SetHub(_hubTitle, _hubSubtitle);
 
@@ -221,9 +257,118 @@ internal partial class WheelWindow : Window
         Log.Info($"Wheel opened for {files.Length} item(s) starting with '{Path.GetFileName(files[0])}': {pages}");
     }
 
-    private void NextPage()
+    /// <summary>
+    /// Runs the picked slice once the drop (or click) has returned, so the drag source isn't kept waiting. Editors take
+    /// one file; the rest may ask a question first, so they wait until the wheel has faded away.
+    /// </summary>
+    private void Act(IFileAction action, string[] files)
     {
-        _pageIndex = (_pageIndex + 1) % _pages.Count;
+        if (action is EditAction edit)
+        {
+            if (files.FirstOrDefault(file => File.Exists(file) && edit.AppliesTo(file)) is { } file)
+                Dispatcher.BeginInvoke(() => _openEditor(edit, file));
+        }
+        else
+        {
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => _run(action, files));
+        }
+    }
+
+    /// <summary>The right-click menu's way in: the wheel opens at the cursor, and a click on a slice runs it.</summary>
+    public void ShowForClick(string[] files)
+    {
+        GetCursorPos(out POINT cursor);
+        _hideTimer.Stop();
+        _fadeGeneration++;
+        Wheel.BeginAnimation(OpacityProperty, null);
+        Wheel.Opacity = 0;
+        if (!IsVisible)
+            Show();
+        CenterOn(cursor);
+        _clickMode = true;
+        Open(files);
+        UpdateHighlight(WheelGeometry.HitTest(Wheel.PointFromScreen(new Point(cursor.X, cursor.Y)), Actions.Count));
+        StartHideTimer(ClickTimeout);
+    }
+
+    /// <summary>A mouse button went down anywhere (seen by the hook): outside the open wheel, that closes it.</summary>
+    public void OnButtonPressed(POINT point)
+    {
+        if (!_clickMode || _phase != Phase.Active)
+            return;
+        if (WheelGeometry.HitTest(Wheel.PointFromScreen(new Point(point.X, point.Y)), Actions.Count) == WheelGeometry.OutsideIndex)
+            FadeOut();
+    }
+
+    private void ClickAt(Point point)
+    {
+        int index = WheelGeometry.HitTest(point, Actions.Count);
+        if (index >= 0)
+        {
+            IFileAction action = Actions[index];
+            Log.Info($"Clicked '{action.Label}': {action.Description} for {_files.Length} item(s)");
+            Act(action, _files);
+        }
+
+        FadeOut();
+    }
+
+    /// <summary>
+    /// A browser's picture is saved inside the drop (its data is gone afterwards); a link is downloaded after it. Either
+    /// lands in Downloads and then gets the action, like a file dropped from Explorer.
+    /// </summary>
+    private void DropFromBrowser(BrowserDrop browser, IFileAction action, IDataObject data)
+    {
+        Task<string> saving;
+        try
+        {
+            saving = browser.SaveAsync(data);
+        }
+        catch (Exception ex)
+        {
+            saving = Task.FromException<string>(ex);
+        }
+
+        saving.ContinueWith(task =>
+        {
+            if (task.Exception?.GetBaseException() is { } failure)
+            {
+                Log.Error($"Couldn't save '{browser.FileName}' from the browser", failure);
+                _runner.RunJob(action, browser.FileName, () => throw new InvalidDataException($"Couldn't get it from the browser: {failure.Message}"));
+                return;
+            }
+
+            string saved = task.Result;
+            Log.Info($"Saved '{saved}' from the browser");
+            if (action is EditAction edit)
+                _openEditor(edit, saved);
+            else
+                _run(action, new[] { saved });
+        }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
+    private static IEnumerable<string> SafeFormats(IDataObject data)
+    {
+        try
+        {
+            return data.GetFormats();
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException)
+        {
+            return Array.Empty<string>();
+        }
+    }
+
+    /// <summary>The scroll wheel turned mid-drag: down for the next page, up for the previous one.</summary>
+    public void OnScrolled(int direction)
+    {
+        if (_phase == Phase.Active && _pages.Count > 1)
+            NextPage(direction < 0 ? 1 : -1);
+    }
+
+    private void NextPage(int step = 1)
+    {
+        _pageIndex = ((_pageIndex + step) % _pages.Count + _pages.Count) % _pages.Count;
         ShowPage();
         Wheel.PlayPageTurnAnimation();
 
@@ -236,7 +381,8 @@ internal partial class WheelWindow : Window
     private void ShowPage()
     {
         Wheel.SetSlices(Actions.Select(action => new WheelItem(action.Label, action.Glyph)).ToList());
-        Wheel.SetHint(_pages.Count > 1 ? $"{TriggerName} → {_pages[(_pageIndex + 1) % _pages.Count].Name}" : null);
+        string turn = _clickMode ? "Scroll" : TriggerName;
+        Wheel.SetHint(_pages.Count > 1 ? $"{turn} → {_pages[(_pageIndex + 1) % _pages.Count].Name}" : null);
     }
 
     private void UpdateHover(DragEventArgs e)
@@ -265,6 +411,7 @@ internal partial class WheelWindow : Window
 
     private void FadeOut()
     {
+        _clickMode = false;
         _phase = Phase.Hidden;
         _hideTimer.Stop();
         int generation = ++_fadeGeneration;
@@ -279,6 +426,7 @@ internal partial class WheelWindow : Window
 
     private void HideNow()
     {
+        _clickMode = false;
         _phase = Phase.Hidden;
         _hideTimer.Stop();
         _fadeGeneration++;
@@ -367,7 +515,7 @@ internal partial class WheelWindow : Window
 
         string path = files[0];
         if (Directory.Exists(path))
-            return ("Folder", "Folders aren't supported yet");
+            return ("Folder", pageCount > 0 ? Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar)) : "Nothing to do with folders yet");
 
         string size;
         try

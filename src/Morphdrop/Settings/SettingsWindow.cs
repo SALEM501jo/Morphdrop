@@ -72,7 +72,10 @@ internal sealed class SettingsWindow : Window
                 Choice("notify", "Every result", settings.Notifications == NotificationLevel.All, s => s with { Notifications = NotificationLevel.All }),
                 Choice("notify", "Only problems", settings.Notifications == NotificationLevel.ErrorsOnly, s => s with { Notifications = NotificationLevel.ErrorsOnly }))));
 
-        page.Children.Add(Section("Windows", null, startWithWindows));
+        var rightClick = new CheckBox { Content = "Add \"Morphdrop…\" to File Explorer's right-click menu", IsChecked = settings.RightClickMenu, Margin = new Thickness(0, 8, 0, 0) };
+        rightClick.Click += (_, _) => _store.Update(s => s with { RightClickMenu = rightClick.IsChecked == true });
+        page.Children.Add(Section("Windows", "On Windows 11 the menu entry is under \"Show more options\".",
+            new StackPanel { Children = { startWithWindows, rightClick } }));
 
         var close = new Button { Content = "Close", IsDefault = true, IsCancel = true, MinWidth = 90 };
         close.SetResourceReference(StyleProperty, "AccentButton");

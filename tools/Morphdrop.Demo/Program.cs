@@ -44,6 +44,12 @@ internal static class Program
 
         Directory.CreateDirectory(output);
         DemoAssets assets = DemoAssets.Prepare(Path.Combine(output, "files"));
+        if (Option(args, "windows") is { } which)
+        {
+            WindowShots.Render(assets, output, which);
+            return 0;
+        }
+
         if (args.Contains("--cover"))
         {
             Cover.Render(assets, Path.Combine(output, "cover-instagram.png"));

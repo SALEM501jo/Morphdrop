@@ -122,7 +122,7 @@ public sealed class DocumentTests : IDisposable
     [OfficeFact("Word")]
     public void AWordDocument_GetsAPdfSlice()
     {
-        ActionPage convert = Assert.Single(ActionCatalog.ForFileName("report.docx"));
+        ActionPage convert = ActionCatalog.ForFileName("report.docx").Single(page => page.Name == "Convert");
         Assert.Contains(convert.Actions, action => action is DocumentToPdfAction);
     }
 

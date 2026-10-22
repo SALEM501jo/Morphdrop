@@ -2,7 +2,7 @@ using ImageMagick;
 
 namespace Morphdrop.Imaging;
 
-internal enum ImageKind { Png, Jpeg, WebP, Avif, Heic, Jxl, Psd, Pdf, Ico, Tiff, Gif, Bmp }
+internal enum ImageKind { Png, Jpeg, WebP, Avif, Heic, Jxl, Psd, Pdf, Ico, Tiff, Gif, Bmp, Raw, Svg }
 
 /// <summary>An image format Morphdrop knows, and what it can do with it.</summary>
 internal sealed class ImageFormat
@@ -44,13 +44,18 @@ internal sealed class ImageFormat
     // Most apps ignore transparency in BMP files, so it is treated as opaque.
     public static ImageFormat Bmp { get; } = new(ImageKind.Bmp, "BMP", MagickFormat.Bmp, true, true, false, false, ".bmp", ".dib");
 
-    public static IReadOnlyList<ImageFormat> All { get; } = new[] { Png, Jpeg, WebP, Avif, Heic, Jxl, Psd, Pdf, Ico, Tiff, Gif, Bmp };
+    // Read only: camera RAW photos (Canon, Nikon, Sony, Adobe DNG, Olympus, Panasonic, Fuji, Pentax, Samsung…),
+    // developed by LibRaw. Their files often look like TIFFs inside, so the extension decides (see FormatDetector).
+    public static ImageFormat Raw { get; } = new(ImageKind.Raw, "RAW", MagickFormat.Dng, true, false, false, false,
+        ".dng", ".cr2", ".cr3", ".crw", ".nef", ".nrw", ".arw", ".srf", ".sr2", ".orf", ".rw2", ".raf", ".pef", ".srw", ".3fr", ".erf", ".kdc", ".mrw", ".x3f");
 
-    /// <summary>
-    /// The wheel's conversion targets, clockwise from the top. JPEG XL can be written too, but stays off the
-    /// wheel until more apps can open it.
-    /// </summary>
-    public static IReadOnlyList<ImageFormat> WheelTargets { get; } = new[] { Png, Jpeg, WebP, Avif, Pdf, Ico, Tiff, Gif, Bmp };
+    // Read only, drawn by librsvg (never ImageMagick's own SVG/MVG interpreter).
+    public static ImageFormat Svg { get; } = new(ImageKind.Svg, "SVG", MagickFormat.Rsvg, true, false, true, false, ".svg", ".svgz");
+
+    public static IReadOnlyList<ImageFormat> All { get; } = new[] { Png, Jpeg, WebP, Avif, Heic, Jxl, Psd, Pdf, Ico, Tiff, Gif, Bmp, Raw, Svg };
+
+    /// <summary>The wheel's conversion targets, clockwise from the top.</summary>
+    public static IReadOnlyList<ImageFormat> WheelTargets { get; } = new[] { Png, Jpeg, WebP, Avif, Pdf, Ico, Tiff, Gif, Bmp, Jxl };
 
     public ImageKind Kind { get; }
 

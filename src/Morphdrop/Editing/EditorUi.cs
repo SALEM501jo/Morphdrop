@@ -11,6 +11,9 @@ internal static class EditorUi
 {
     public static readonly Brush Accent = Frozen(Color.FromRgb(0xFF, 0x5F, 0x3A));
 
+    /// <summary>Windows' icon font (Segoe Fluent Icons on Windows 11, Segoe MDL2 Assets on Windows 10).</summary>
+    public static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
+
     public static RadioButton Chip(string text, string group, bool isChecked, Action onChecked)
     {
         var chip = new RadioButton { Content = text, GroupName = group, IsChecked = isChecked };

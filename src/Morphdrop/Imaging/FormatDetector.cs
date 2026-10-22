@@ -16,12 +16,59 @@ internal static class FormatDetector
     private static readonly byte[] JxlCodestream = { 0xFF, 0x0A };
     private static readonly byte[] JxlContainer = { 0x00, 0x00, 0x00, 0x0C, 0x4A, 0x58, 0x4C, 0x20, 0x0D, 0x0A, 0x87, 0x0A };
 
+    private const int SvgSniffLength = 4096;
+
     public static ImageFormat? Detect(string path)
     {
         Span<byte> header = stackalloc byte[HeaderLength];
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         int read = stream.ReadAtLeast(header, HeaderLength, throwOnEndOfStream: false);
+        ImageFormat? named = ImageFormat.FromPath(path);
+
+        // Camera RAW files are mostly TIFFs inside; trust a RAW extension when the header fits one of the layouts.
+        if (named?.Kind == ImageKind.Raw && LooksLikeRaw(header[..read]))
+            return ImageFormat.Raw;
+
+        // SVG is text, so it has no signature: an .svg must really start like one (an .svgz is gzip).
+        if (named?.Kind == ImageKind.Svg)
+        {
+            stream.Position = 0;
+            return IsSvg(stream) ? ImageFormat.Svg : null;
+        }
+
         return Detect(header[..read]);
+    }
+
+    internal static bool LooksLikeRaw(ReadOnlySpan<byte> header) =>
+        header.StartsWith("II*\0"u8) || header.StartsWith("MM\0*"u8)           // DNG, CR2, NEF, ARW, PEF, SRW…
+        || header.StartsWith("IIRO"u8) || header.StartsWith("IIRS"u8) || header.StartsWith("MMOR"u8) // Olympus ORF
+        || header.StartsWith("IIU\0"u8)                                        // Panasonic RW2
+        || header.StartsWith("FUJIFILM"u8)                                    // Fuji RAF
+        || header.StartsWith("FOVb"u8)                                        // Sigma X3F
+        || header.StartsWith("\0MRM"u8)                                        // Minolta MRW
+        || (header.Length >= 12 && header[4..12].SequenceEqual("ftypcrx "u8)) // Canon CR3
+        || (header.Length >= 14 && header[6..14].SequenceEqual("HEAPCCDR"u8)); // Canon CRW
+
+    /// <summary>
+    /// An SVG document: after an optional XML declaration, comments and doctype, an &lt;svg&gt; element. Files that
+    /// declare XML entities are refused; that is how SVG files attack XML parsers. An .svgz just has to be gzip.
+    /// </summary>
+    internal static bool IsSvg(Stream stream)
+    {
+        var start = new byte[SvgSniffLength];
+        int read = stream.ReadAtLeast(start, start.Length, throwOnEndOfStream: false);
+        if (read >= 2 && start[0] == 0x1F && start[1] == 0x8B)
+            return true;
+
+        string text = System.Text.Encoding.UTF8.GetString(start, 0, read);
+        if (text.Contains("<!ENTITY", StringComparison.OrdinalIgnoreCase))
+            return false;
+        int svg = text.IndexOf("<svg", StringComparison.Ordinal);
+        if (svg < 0)
+            return false;
+        string before = text[..svg].TrimStart('\uFEFF', ' ', '\t', '\r', '\n');
+        return before.Length == 0 || before.StartsWith("<?xml", StringComparison.Ordinal) || before.StartsWith("<!--", StringComparison.Ordinal)
+            || before.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase);
     }
 
     public static ImageFormat? Detect(ReadOnlySpan<byte> header)

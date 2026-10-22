@@ -2,7 +2,7 @@ using Morphdrop.Imaging;
 
 namespace Morphdrop.Actions;
 
-internal enum EditKind { Crop, Background, Redact }
+internal enum EditKind { Crop, Background, Redact, RemoveBackground }
 
 /// <summary>A slice on the Edit page: dropping a file on it opens an editor window instead of running at once.</summary>
 internal sealed class EditAction : IFileAction
